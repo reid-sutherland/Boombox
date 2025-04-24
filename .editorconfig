@@ -1,0 +1,134 @@
+﻿#### Configure indentation so VS doesn't mess up the formatting all the time
+[*]
+indent_style = space
+
+[*.csproj]
+indent_style = 2
+
+[*.props]
+indent_style = 2
+
+
+#### StyleCop Analyzer rules ####
+[*.cs]
+
+# SA0001: XML comment analysis
+dotnet_diagnostic.SA0001.severity = none
+
+## SpacingRules
+# SA1000: Keywords must be spaced correctly
+dotnet_diagnostic.SA1000.severity = none
+# SA1002: Semicolons must be spaced correctly
+dotnet_diagnostic.SA1002.severity = none
+# SA1005: Single line comment should begin with a space
+dotnet_diagnostic.SA1005.severity = none
+# SA1009: Closing parenthesis must be spaced correctly
+dotnet_diagnostic.SA1009.severity = none
+
+## ReadabilityRules
+# SA1101: Prefix local calls with this
+dotnet_diagnostic.SA1101.severity = none
+# SA1108: Block statements must not contain embedded comments
+dotnet_diagnostic.SA1108.severity = none
+# SA1109: Block statements must not contain embedded regions
+dotnet_diagnostic.SA1109.severity = none
+# SA1110: Opening parenthesis or bracket must be on declaration line
+dotnet_diagnostic.SA1110.severity = none
+# SA1111: Closing parenthesis must be on line of last parameter
+dotnet_diagnostic.SA1111.severity = none
+# SA1112: Closing parenthesis must be on line of opening parenthesis
+dotnet_diagnostic.SA1112.severity = none
+# SA1122: Use string.Empty for empty strings
+dotnet_diagnostic.SA1122.severity = none
+
+## OrderingRules: disable all
+dotnet_diagnostic.SA1200.severity = none
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1202.severity = none
+dotnet_diagnostic.SA1203.severity = none
+dotnet_diagnostic.SA1204.severity = none
+dotnet_diagnostic.SA1205.severity = none
+dotnet_diagnostic.SA1206.severity = none
+dotnet_diagnostic.SA1207.severity = none
+dotnet_diagnostic.SA1208.severity = none
+dotnet_diagnostic.SA1209.severity = none
+dotnet_diagnostic.SA1210.severity = none
+dotnet_diagnostic.SA1211.severity = none
+dotnet_diagnostic.SA1212.severity = none
+dotnet_diagnostic.SA1213.severity = none
+dotnet_diagnostic.SA1214.severity = none
+dotnet_diagnostic.SA1215.severity = none
+dotnet_diagnostic.SA1216.severity = none
+dotnet_diagnostic.SA1217.severity = none
+
+## NamingRules: keep all
+
+## MaintainabilityRules
+# SA1404: Code analysis suppression must have justification
+dotnet_diagnostic.SA1404.severity = none
+# SA1412: Store files as UTF-8 with byte order mark
+dotnet_diagnostic.SA1412.severity = none
+
+## LayoutRules
+# SA1501: Statement must not be on a single line
+dotnet_diagnostic.SA1501.severity = suggestion
+# SA1502: Element must not be on a single line
+dotnet_diagnostic.SA1502.severity = suggestion
+# SA1503: Braces should not be omitted.
+dotnet_diagnostic.SA1503.severity = suggestion
+# SA1506: Element documentation headers must not be followed by blank line
+dotnet_diagnostic.SA1506.severity = none
+# SA1512: Single-line comments should not be followed by blank line
+dotnet_diagnostic.SA1512.severity = none
+# SA1513: Closing brace should be followed by blank line
+dotnet_diagnostic.SA1513.severity = none
+# SA1515: Single-line comment should be preceded by blank line
+dotnet_diagnostic.SA1515.severity = none
+# SA1516: Elements should be separated by a blank line
+dotnet_diagnostic.SA1516.severity = none
+# SA1520: Use braces consistently
+dotnet_diagnostic.SA1520.severity = none
+
+## DocumentationRules: Disable all
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1604.severity = none
+dotnet_diagnostic.SA1605.severity = none
+dotnet_diagnostic.SA1606.severity = none
+dotnet_diagnostic.SA1607.severity = none
+dotnet_diagnostic.SA1608.severity = none
+dotnet_diagnostic.SA1609.severity = none
+dotnet_diagnostic.SA1610.severity = none
+dotnet_diagnostic.SA1611.severity = none
+dotnet_diagnostic.SA1612.severity = none
+dotnet_diagnostic.SA1613.severity = none
+dotnet_diagnostic.SA1614.severity = none
+dotnet_diagnostic.SA1615.severity = none
+dotnet_diagnostic.SA1616.severity = none
+dotnet_diagnostic.SA1617.severity = none
+dotnet_diagnostic.SA1618.severity = none
+dotnet_diagnostic.SA1619.severity = none
+dotnet_diagnostic.SA1620.severity = none
+dotnet_diagnostic.SA1621.severity = none
+dotnet_diagnostic.SA1622.severity = none
+dotnet_diagnostic.SA1623.severity = none
+dotnet_diagnostic.SA1624.severity = none
+dotnet_diagnostic.SA1625.severity = none
+dotnet_diagnostic.SA1626.severity = none
+dotnet_diagnostic.SA1627.severity = none
+dotnet_diagnostic.SA1633.severity = none
+dotnet_diagnostic.SA1634.severity = none
+dotnet_diagnostic.SA1635.severity = none
+dotnet_diagnostic.SA1636.severity = none
+dotnet_diagnostic.SA1637.severity = none
+dotnet_diagnostic.SA1638.severity = none
+dotnet_diagnostic.SA1639.severity = none
+dotnet_diagnostic.SA1640.severity = none
+dotnet_diagnostic.SA1641.severity = none
+dotnet_diagnostic.SA1642.severity = none
+dotnet_diagnostic.SA1643.severity = none
+dotnet_diagnostic.SA1648.severity = none
+dotnet_diagnostic.SA1649.severity = none
+dotnet_diagnostic.SA1651.severity = none
+dotnet_diagnostic.SA1652.severity = none
