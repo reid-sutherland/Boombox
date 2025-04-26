@@ -15,11 +15,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.IO;
 using UnityEngine;
-using YamlDotNet.Serialization;
-using Boombox.Utils;
-using System.Diagnostics.Eventing.Reader;
-using System.Drawing;
 using UserSettings.ServerSpecific;
+using YamlDotNet.Serialization;
+//using EBroadcast = Exiled.API.Features.Broadcast;
+using Boombox.Utils;
 
 namespace Boombox;
 
@@ -195,8 +194,19 @@ public class Boombox : CustomItem
 
     protected void OnRoundStarted()
     {
-        //// Send a broadcast to any player that doesn't have the SS setting set
-        //ServerSpecificSettingsSync.TryGetSettingOfUser<>
+        // TODO: the checking is not working yet, but for now just give everybody the reminder
+        // Send a broadcast to any player that doesn't have the SS setting set
+        int keybindSettingId = MainPlugin.Singleton.KeybindSetting.SettingId;
+        foreach (Player player in Player.List)
+        {
+            Log.Debug($"Checking player: {player.Nickname}");
+            bool hasKeybindSetting = ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, keybindSettingId, out SSKeybindSetting result);
+            if (!hasKeybindSetting || (result is not null && result.AssignedKeyCode != MainPlugin.Fcode))
+            {
+                Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
+                player.ShowHint("Make sure Boombox Key is bound to F in server-specific settings!!!", 10.0f);
+            }
+        }
 
         // TODO: Organize files by playlist directory
         PlaylistIndexes = new()
@@ -221,7 +231,26 @@ public class Boombox : CustomItem
             else if (TrackedSerials.Count > 1)
             {
                 string serials = string.Join(", ", TrackedSerials.Select(ser => ser.ToString()));
-                throw new Exception($"Found multiple spawned boomboxes: {serials}");
+                Log.Error($"Found multiple spawned boomboxes: {serials}");
+                try
+                {
+                    while (TrackedSerials.Count > 1)
+                    {
+                        int deleteser = TrackedSerials.Last();
+                        Log.Warn($"Destroying bb: {deleteser}");
+                        RadioPickup deletebb = (RadioPickup)Pickup.Get((ushort)deleteser);
+                        if (deletebb is not null)
+                        {
+                            deletebb.Destroy();
+                            TrackedSerials.Remove(TrackedSerials.Last());
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Destory bb ex: {ex.Message}");
+                }
+                //throw new Exception($"Found multiple spawned boomboxes: {serials}");
             }
             BoomboxSerial = TrackedSerials.First();
             Log.Debug($"Found spawned boombox with serial: {BoomboxSerial}");
@@ -236,15 +265,25 @@ public class Boombox : CustomItem
         if (pickup is not null)
         {
             RadioPickup boombox = (RadioPickup)pickup;
-            boombox.IsEnabled = false;
-            boombox.BatteryLevel = 100;
-            boombox.Range = RadioRange.Short;
+            if (boombox is not null)
+            {
+                boombox.IsEnabled = false;
+                boombox.BatteryLevel = 100;
+                boombox.Range = RadioRange.Short;
+            }
 
             // Create the audio player
-            AudioPlayer = AudioHelper.GetAudioPlayer(AudioPlayerName);
-            if (AudioPlayer is null)
+            try
             {
-                Log.Error($"Tried to create audio player for new boombox spawn, but it failed");
+                AudioPlayer = AudioHelper.GetAudioPlayer(AudioPlayerName);
+                if (AudioPlayer is null)
+                {
+                    Log.Error($"Tried to create audio player for new boombox spawn, but it failed");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Tried to get audio player. Exception: {ex.Message}");
             }
         }
         else
@@ -276,8 +315,6 @@ public class Boombox : CustomItem
             boomboxItem.Destroy();
             Log.Debug($"-- destroyed Boombox item");
         }
-        AudioPlayer.Destroy();
-        Log.Debug($"-- destroyed audio player");
 
         DiedWithPlayerId = "";
     }
@@ -305,13 +342,6 @@ public class Boombox : CustomItem
             return;
         }
         SetBoomboxSettings((Radio)ev.Item);
-
-        //Radio boombox = (Radio)ev.Item;
-        //Log.Debug($"-- range: {boombox.Range}");
-        //Log.Error($"-- isEnabled: {boombox.IsEnabled}");
-        //Log.Error($"-- current max range: {boombox.RangeSettings.MaxRange}");
-        //SetBoomboxSettings(boombox);
-        //Log.Error($"-- max range after: {boombox.RangeSettings.MaxRange}");
     }
 
     // Just sets the boombox settings

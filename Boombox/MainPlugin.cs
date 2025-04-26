@@ -36,7 +36,9 @@ public class MainPlugin : Plugin<Config>
 
     public static Random Random { get; private set; }
 
-    public const int FVALUE = 102;
+    public const KeyCode Fcode = KeyCode.F;
+
+    public SSKeybindSetting KeybindSetting { get; private set; } = new SSKeybindSetting(69, $"BOOMBOX - Change Song - {Fcode}", Fcode, true, "");
 
     public override void OnEnabled()
     {
@@ -81,9 +83,7 @@ public class MainPlugin : Plugin<Config>
         playlistTest = Boombox.Playlists[RadioRange.Ultra];
 
         // Set up server-specific settings for the change-song key (F)
-        ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings.Append(
-            new SSKeybindSetting(null, $"BOOMBOX - Change Song - {(KeyCode)FVALUE}", (KeyCode)FVALUE, true, "")
-        ).ToArray();
+        ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings.Append(KeybindSetting).ToArray();
         ServerSpecificSettingsSync.SendToAll();
 
         ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;
@@ -145,7 +145,7 @@ public class MainPlugin : Plugin<Config>
         if (setting.OriginalDefinition is SSKeybindSetting sSKeybind && (setting as SSKeybindSetting).SyncIsPressed)
         {
             KeyCode key = sSKeybind.SuggestedKey;
-            if ((int)key == FVALUE)
+            if (key == Fcode)
             {
                 Player player = Player.Get(sender);
                 if (player.CurrentItem is not null && player.CurrentItem.Serial == (ushort)Boombox.BoomboxSerial)
