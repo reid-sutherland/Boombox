@@ -419,7 +419,7 @@ public class Boombox : CustomItem
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
-    public void OnRadioUsed(Item currentItem)
+    public void OnRadioUsed(Player player, Item currentItem)
     {
         //Radio boombox = (Radio)currentItem;
         //Log.Debug($"-- range: {boombox.Range}");
@@ -435,7 +435,7 @@ public class Boombox : CustomItem
         Radio boombox = (Radio)currentItem;
         if (boombox is not null)
         {
-            PlaySong(boombox.IsEnabled, boombox.Range, QueueType.Next);
+            PlaySong(player, boombox.IsEnabled, boombox.Range, QueueType.Next);
         }
     }
 
@@ -451,7 +451,7 @@ public class Boombox : CustomItem
 
         if (AudioPlayer is not null)
         {
-            PlaySong(ev.Radio.IsEnabled, ev.NewValue, QueueType.Current);
+            PlaySong(ev.Player, ev.Radio.IsEnabled, ev.NewValue, QueueType.Current);
         }
     }
 
@@ -479,7 +479,7 @@ public class Boombox : CustomItem
             }
             else
             {
-                PlaySong(ev.NewState, ev.Radio.Range, QueueType.Current);
+                PlaySong(ev.Player, ev.NewState, ev.Radio.Range, QueueType.Current);
             }
         }
     }
@@ -506,7 +506,7 @@ public class Boombox : CustomItem
         ev.Drain = 1.0f;
     }
 
-    public void PlaySong(bool isEnabled, RadioRange range, QueueType queueType, bool addAllSongs = true, bool shuffle = false)
+    public void PlaySong(Player player, bool isEnabled, RadioRange range, QueueType queueType, bool addAllSongs = true, bool shuffle = false)
     {
         if (shuffle)
         {
@@ -554,6 +554,7 @@ public class Boombox : CustomItem
         string song = Playlists[range][PlaylistIndexes[range]].Replace(".ogg", "");
         CurrentPlayback = AudioPlayer.AddClip(song);
         Log.Debug($"Added clip '{CurrentPlayback.Clip}' to boombox audio player");
+        player.ShowHint($"Changed song to {song}", 0.5f);
 
         // TODO: Use this code for a small chance of warhead shake when "again" is played, maybe only when Jared uses it
 

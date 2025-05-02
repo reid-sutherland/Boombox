@@ -151,7 +151,7 @@ public class MainPlugin : Plugin<Config>
                 if (player.CurrentItem is not null && player.CurrentItem.Serial == (ushort)Boombox.BoomboxSerial)
                 {
                     Log.Debug($"Player {player.Nickname} pressed the F key while holding the boombox");
-                    Boombox.OnRadioUsed(player.CurrentItem);
+                    Boombox.OnRadioUsed(player, player.CurrentItem);
                 }
             }
         }
