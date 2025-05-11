@@ -8,7 +8,6 @@ using System.Linq;
 using UnityEngine;
 using UserSettings.ServerSpecific;
 using Boombox.Utils;
-using Player = LabApi.Features.Wrappers.Player;
 using Random = System.Random;
 
 namespace Boombox;
@@ -146,7 +145,8 @@ public class MainPlugin : Plugin<Config>
             KeyCode key = sSKeybind.SuggestedKey;
             if (key == Fcode)
             {
-                Player player = Player.Get(sender);
+                LabApi.Features.Wrappers.Player labPlayer = LabApi.Features.Wrappers.Player.Get(sender);
+                Player player = labPlayer;
                 if (player.CurrentItem is not null && player.CurrentItem.Serial == (ushort)Boombox.BoomboxSerial)
                 {
                     Log.Debug($"Player {player.Nickname} pressed the F key while holding the boombox");
