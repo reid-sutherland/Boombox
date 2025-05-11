@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
 		<AssemblyName>Boombox</AssemblyName>
@@ -16,14 +15,21 @@
 
 	<Import Project="../Plugin.props" />
 
+	<!-- This replaces the Exiled NuGet package until the new beta version is fully released -->
 	<ItemGroup>
-		<PackageReference Include="ExMod.Exiled" Version="9.5.1" />
-		<PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopVersion)" IncludeAssets="All" PrivateAssets="All" />
-		<PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
+		<Reference Include="Exiled.API" HintPath="$(EXILED_PLUGINS)\Exiled.API.dll" Private="false" />
+		<Reference Include="Exiled.CustomItems" HintPath="$(EXILED_PLUGINS)\Exiled.CustomItems.dll" Private="false" />
+		<Reference Include="Exiled.Events" HintPath="$(EXILED_PLUGINS)\Exiled.Events.dll" Private="false" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="AudioPlayerAPI" HintPath="$(EXILED_PLUGINS)\dependencies\AudioPlayerAPI.dll" Private="false" />
+		<!--PackageReference Include="ExMod.Exiled" Version="9.6.0" />-->
+		<PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
+		<PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopVersion)" IncludeAssets="All" PrivateAssets="All" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="AudioPlayerApi" HintPath="$(EXILED_PLUGINS)\dependencies\AudioPlayerApi.dll" Private="false" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -32,10 +38,10 @@
 		<Reference Include="CommandSystem.Core" HintPath="$(EXILED_REFERENCES)\CommandSystem.Core.dll" Private="false" />
 		<Reference Include="Mirror" HintPath="$(EXILED_REFERENCES)\Mirror.dll" Private="false" />
 		<Reference Include="NorthwoodLib" HintPath="$(EXILED_REFERENCES)\NorthwoodLib.dll" Private="false" />
-		<Reference Include="PluginAPI" HintPath="$(EXILED_REFERENCES)\PluginAPI.dll" Private="false" />
+		<Reference Include="LabApi" HintPath="$(EXILED_REFERENCES)\LabApi.dll" Private="false" />
 		<Reference Include="UnityEngine" HintPath="$(EXILED_REFERENCES)\UnityEngine.dll" Private="false" />
 		<Reference Include="UnityEngine.CoreModule" HintPath="$(EXILED_REFERENCES)\UnityEngine.CoreModule.dll" Private="false" />
 		<Reference Include="UnityEngine.PhysicsModule" HintPath="$(EXILED_REFERENCES)\UnityEngine.PhysicsModule.dll" Private="false" />
+		<Reference Include="YamlDotNet" HintPath="$(EXILED_REFERENCES)\YamlDotNet.dll" Private="false" />
 	</ItemGroup>
-
 </Project>
