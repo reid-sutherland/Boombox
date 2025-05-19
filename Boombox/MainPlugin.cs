@@ -81,7 +81,11 @@ public class MainPlugin : Plugin<Config>
         playlistTest = Boombox.Playlists[RadioRange.Ultra];
 
         // Set up server-specific settings for the change-song key (F)
-        ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings.Append(KeybindSetting).ToArray();
+        if (ServerSpecificSettingsSync.DefinedSettings == null)
+        {
+            ServerSpecificSettingsSync.DefinedSettings = new ServerSpecificSettingBase[0];
+        }
+        ServerSpecificSettingsSync.DefinedSettings.Append(KeybindSetting);
         ServerSpecificSettingsSync.SendToAll();
 
         ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;

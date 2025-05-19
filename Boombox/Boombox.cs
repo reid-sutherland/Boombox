@@ -250,7 +250,6 @@ public class Boombox : CustomItem
                 {
                     Log.Error($"Destory bb ex: {ex.Message}");
                 }
-                //throw new Exception($"Found multiple spawned boomboxes: {serials}");
             }
             BoomboxSerial = TrackedSerials.First();
             Log.Debug($"Found spawned boombox with serial: {BoomboxSerial}");
@@ -268,7 +267,7 @@ public class Boombox : CustomItem
             if (boombox is not null)
             {
                 boombox.IsEnabled = false;
-                boombox.BatteryLevel = 100;
+                boombox.BatteryLevel = 1.0f;
                 boombox.Range = RadioRange.Short;
             }
 
@@ -326,8 +325,10 @@ public class Boombox : CustomItem
         {
             return;
         }
-        Log.Debug($"{ev.Player.Nickname} is picking up the boombox: serial={ev.Pickup.Serial}");
 
+        // TODO: Consider replacing this with overriding CustomItem.OnAcquired - be sure to call base
+
+        Log.Debug($"{ev.Player.Nickname} is picking up the boombox: serial={ev.Pickup.Serial}");
         if (AudioPlayer is not null)
         {
             AudioHelper.SetAudioPlayerParent(AudioPlayer, ev.Player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
@@ -351,7 +352,6 @@ public class Boombox : CustomItem
         {
             return;
         }
-        SetBoomboxSettings((Radio)ev.Item);
     }
 
     // Moves the audio player from the player to the dropped pickup
@@ -361,8 +361,10 @@ public class Boombox : CustomItem
         {
             return;
         }
-        Log.Debug($"{ev.Player.Nickname} dropped the boombox: serial={ev.Pickup.Serial}");
 
+        // TODO: Consider using PickupSpawned instead here
+
+        Log.Debug($"{ev.Player.Nickname} dropped the boombox: serial={ev.Pickup.Serial}");
         if (AudioPlayer is not null)
         {
             AudioHelper.SetAudioPlayerParent(AudioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
@@ -606,12 +608,21 @@ public class Boombox : CustomItem
     // The boombox's radio settings need to be set to ensure it can't be used like a regular radio.
     // But, when it transitions between item (in hand) and pickup (on the ground), the settings reset.
     // So, this method should be called when the item transitions or when the radio is equipped.
-    // NOTE: this shit doesn't work :) other radios with big range override this radio's range
-    private void SetBoomboxSettings(Radio radio)
+    private void SetBoomboxSettings(Radio radio = null, RadioPickup radioPickup = null)
     {
-        radio.SetRangeSettings(RadioRange.Short, boomboxSettings);
-        radio.SetRangeSettings(RadioRange.Medium, boomboxSettings);
-        radio.SetRangeSettings(RadioRange.Long, boomboxSettings);
-        radio.SetRangeSettings(RadioRange.Ultra, boomboxSettings);
+        if (radio is not null)
+        {
+            Log.Debug($"** setting boombox settings on Radio: {radio.Serial}");
+            radio.SetRangeSettings(RadioRange.Short, boomboxSettings);
+            radio.SetRangeSettings(RadioRange.Medium, boomboxSettings);
+            radio.SetRangeSettings(RadioRange.Long, boomboxSettings);
+            radio.SetRangeSettings(RadioRange.Ultra, boomboxSettings);
+            radio.BatteryLevel = 100;
+        }
+        else if (radioPickup is not null)
+        {
+            Log.Debug($"** setting boombox settings on RadioPickup: {radioPickup.Serial}");
+            radioPickup.BatteryLevel = 100;
+        }
     }
 }
