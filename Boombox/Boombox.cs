@@ -494,7 +494,7 @@ public class Boombox : CustomItem
         {
             return;
         }
-        ev.Drain = 1.0f;
+        ev.IsAllowed = false;
     }
 
     // Same as above
@@ -505,7 +505,7 @@ public class Boombox : CustomItem
         {
             return;
         }
-        ev.Drain = 1.0f;
+        ev.IsAllowed = false;
     }
 
     public void PlaySong(Player player, bool isEnabled, RadioRange range, QueueType queueType, bool addAllSongs = true, bool shuffle = false)
