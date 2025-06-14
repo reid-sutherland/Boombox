@@ -1,7 +1,6 @@
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
-using MEC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,9 +33,7 @@ public class MainPlugin : Plugin<Config>
 
     public static Random Random { get; private set; }
 
-    public const KeyCode Fcode = KeyCode.F;
-
-    public SSKeybindSetting KeybindSetting { get; private set; } = new SSKeybindSetting(69, $"BOOMBOX - Change Song - {Fcode}", Fcode, true, "");
+    public SSKeybindSetting SsKeybindSetting { get; private set; } = new SSKeybindSetting(69, $"BOOMBOX - Change Song - {KeyCode.F}", KeyCode.F);
 
     public override void OnEnabled()
     {
@@ -83,40 +80,41 @@ public class MainPlugin : Plugin<Config>
         // Set up server-specific settings for the change-song key (F)
         if (ServerSpecificSettingsSync.DefinedSettings == null)
         {
-            ServerSpecificSettingsSync.DefinedSettings = new ServerSpecificSettingBase[0];
+            Log.Debug($"Creating new DefinedSettings list for ServerSpecificSettingsSync");
+            ServerSpecificSettingsSync.DefinedSettings = new ServerSpecificSettingBase[]
+            {
+                SsKeybindSetting,
+            };
         }
-        ServerSpecificSettingsSync.DefinedSettings.Append(KeybindSetting);
+        else
+        {
+            ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings.Append(SsKeybindSetting).ToArray();
+        }
+        Log.Debug($"Added SSKeybindSetting to server: {SsKeybindSetting.Label}");
         ServerSpecificSettingsSync.SendToAll();
-
         ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;
 
         // Register custom items here
-        Timing.CallDelayed(5f, () =>
+        Log.Debug("Registering custom items...");
+        try
         {
-            Log.Debug("Registering custom items...");
-            try
-            {
-                CustomItem.RegisterItems(overrideClass: Configs);
-                Log.Info("All custom items registered successfully");
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Some custom items failed to register");
-                Log.Debug(ex);
-            }
-        });
+            CustomItem.RegisterItems(overrideClass: Configs);
+            Log.Info("All custom items registered successfully");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Some custom items failed to register");
+            Log.Debug(ex);
+        }
 
         // Load audio files
         // TODO: If any files don't load, need to remove them from the playlists
-        Timing.CallDelayed(7.0f, () =>
-        {
-            Log.Info($"Loading audio clips from directory: {Boombox.AudioPath}");
-            AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Short]);
-            AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Medium]);
-            AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Long]);
-            AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Ultra]);
-            Log.Info($"Finished loading audio clips");
-        });
+        Log.Info($"Loading audio clips from directory: {Boombox.AudioPath}");
+        AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Short]);
+        AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Medium]);
+        AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Long]);
+        AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Ultra]);
+        Log.Info($"Finished loading audio clips");
 
         base.OnEnabled();
     }
@@ -147,7 +145,7 @@ public class MainPlugin : Plugin<Config>
         if (setting.OriginalDefinition is SSKeybindSetting sSKeybind && (setting as SSKeybindSetting).SyncIsPressed)
         {
             KeyCode key = sSKeybind.SuggestedKey;
-            if (key == Fcode)
+            if (key == KeyCode.F)
             {
                 LabApi.Features.Wrappers.Player labPlayer = LabApi.Features.Wrappers.Player.Get(sender);
                 Player player = labPlayer;

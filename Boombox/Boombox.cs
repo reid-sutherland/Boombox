@@ -1,4 +1,5 @@
 ﻿using Exiled.API.Enums;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
 using Exiled.API.Features.Items;
@@ -197,14 +198,14 @@ public class Boombox : CustomItem
     {
         // TODO: the checking is not working yet, but for now just give everybody the reminder
         // Send a broadcast to any player that doesn't have the SS setting set
-        int keybindSettingId = MainPlugin.Singleton.KeybindSetting.SettingId;
+        int keybindSettingId = MainPlugin.Singleton.SsKeybindSetting.SettingId;
         foreach (Player player in Player.List)
         {
-            Log.Debug($"Checking player: {player.Nickname}");
+            //Log.Debug($"Checking player: {player.Nickname}");
             bool hasKeybindSetting = ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, keybindSettingId, out SSKeybindSetting result);
-            if (!hasKeybindSetting || (result is not null && result.AssignedKeyCode != MainPlugin.Fcode))
+            if (!hasKeybindSetting || (result is not null && result.AssignedKeyCode != KeyCode.F))
             {
-                Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
+                //Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
                 player.ShowHint("Make sure Boombox Key is bound to F in server-specific settings!!!", 10.0f);
             }
         }
@@ -354,7 +355,7 @@ public class Boombox : CustomItem
 
         // TODO: Consider using PickupSpawned instead here
 
-        Log.Debug($"{ev.Player.Nickname} dropped the boombox: serial={ev.Pickup.Serial}");
+        SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
         if (AudioPlayer is not null)
         {
             AudioHelper.SetAudioPlayerParent(AudioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
