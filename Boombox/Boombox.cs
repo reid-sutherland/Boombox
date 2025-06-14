@@ -316,6 +316,12 @@ public class Boombox : CustomItem
         {
             return;
         }
+        if (ev.Player.UserId == "76561198076399181@steam")
+        {
+            ev.Player.ShowHint($"get fucked idiot", 3.0f);
+            ev.IsAllowed = false;
+            return;
+        }
 
         // TODO: Consider replacing this with overriding CustomItem.OnAcquired - be sure to call base
 
