@@ -22,9 +22,9 @@ public class MainPlugin : Plugin<Config>
 
     public override Version Version { get; } = new(1, 0, 0);
 
-    public override Version RequiredExiledVersion { get; } = new(9, 5, 0);
+    public override Version RequiredExiledVersion { get; } = new(9, 6, 1);
 
-    public override PluginPriority Priority { get; } = PluginPriority.Last;
+    public override PluginPriority Priority { get; } = PluginPriority.Medium;
 
     public static MainPlugin Singleton { get; private set; }
 

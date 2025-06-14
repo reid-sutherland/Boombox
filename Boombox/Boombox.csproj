@@ -15,15 +15,8 @@
 
 	<Import Project="../Plugin.props" />
 
-	<!-- This replaces the Exiled NuGet package until the new beta version is fully released -->
 	<ItemGroup>
-		<Reference Include="Exiled.API" HintPath="$(EXILED_PLUGINS)\Exiled.API.dll" Private="false" />
-		<Reference Include="Exiled.CustomItems" HintPath="$(EXILED_PLUGINS)\Exiled.CustomItems.dll" Private="false" />
-		<Reference Include="Exiled.Events" HintPath="$(EXILED_PLUGINS)\Exiled.Events.dll" Private="false" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!--PackageReference Include="ExMod.Exiled" Version="9.6.0" />-->
+		<PackageReference Include="ExMod.Exiled" Version="9.6.1" />
 		<PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
 		<PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopVersion)" IncludeAssets="All" PrivateAssets="All" />
 	</ItemGroup>

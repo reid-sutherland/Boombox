@@ -85,6 +85,7 @@ public class Boombox : CustomItem
         { RadioRange.Ultra, 0 },
     };
 
+    [Description("Where the boombox can spawn. Currently a limit of 1 is required.")]
     public override SpawnProperties SpawnProperties { get; set; } = new()
     {
         Limit = 1,
@@ -217,47 +218,36 @@ public class Boombox : CustomItem
             { RadioRange.Ultra, 0 },
         };
 
-        // TODO: First check if there's already a boombox, in case of RoundRestarting
-
         BoomboxSerial = -1;
-        if (SpawnProperties.Count() > 0)
+        if (TrackedSerials.Count <= 0)
         {
-            Log.Info($"Round started: spawning Boombox");
-            SpawnAll();
-            if (TrackedSerials.Count <= 0)
+            throw new Exception($"Boombox did not spawn");
+        }
+        else if (TrackedSerials.Count > 1)
+        {
+            string serials = string.Join(", ", TrackedSerials.Select(ser => ser.ToString()));
+            Log.Error($"Found multiple spawned boomboxes: {serials}");
+            try
             {
-                throw new Exception($"Boombox did not spawn");
-            }
-            else if (TrackedSerials.Count > 1)
-            {
-                string serials = string.Join(", ", TrackedSerials.Select(ser => ser.ToString()));
-                Log.Error($"Found multiple spawned boomboxes: {serials}");
-                try
+                while (TrackedSerials.Count > 1)
                 {
-                    while (TrackedSerials.Count > 1)
+                    int deleteser = TrackedSerials.Last();
+                    Log.Warn($"Destroying bb: {deleteser}");
+                    RadioPickup deletebb = (RadioPickup)Pickup.Get((ushort)deleteser);
+                    if (deletebb is not null)
                     {
-                        int deleteser = TrackedSerials.Last();
-                        Log.Warn($"Destroying bb: {deleteser}");
-                        RadioPickup deletebb = (RadioPickup)Pickup.Get((ushort)deleteser);
-                        if (deletebb is not null)
-                        {
-                            deletebb.Destroy();
-                            TrackedSerials.Remove(TrackedSerials.Last());
-                        }
+                        deletebb.Destroy();
+                        TrackedSerials.Remove(TrackedSerials.Last());
                     }
                 }
-                catch (Exception ex)
-                {
-                    Log.Error($"Destory bb ex: {ex.Message}");
-                }
             }
-            BoomboxSerial = TrackedSerials.First();
-            Log.Debug($"Found spawned boombox with serial: {BoomboxSerial}");
+            catch (Exception ex)
+            {
+                Log.Error($"Destory bb ex: {ex.Message}");
+            }
         }
-        else
-        {
-            return;
-        }
+        BoomboxSerial = TrackedSerials.First();
+        Log.Info($"Round started: spawned Boombox with serial: {BoomboxSerial}");
 
         // "Initialize" the boombox pickup
         Pickup pickup = Pickup.Get((ushort)BoomboxSerial);
