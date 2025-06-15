@@ -67,7 +67,9 @@ public class Boombox : CustomItem
 
     private string DiedWithPlayerId { get; set; } = "";
 
-    private CoroutineHandle FettyHandle { get; set; } = new();
+    private bool EasterEggUsed { get; set; } = false;
+
+    private CoroutineHandle EasterEggHandle { get; set; } = new();
 
     // This is used to ensure the boombox can never be used like a regular radio
     private readonly Exiled.API.Structs.RadioRangeSettings boomboxSettings = new()
@@ -198,15 +200,17 @@ public class Boombox : CustomItem
     {
         // TODO: the checking is not working yet, but for now just give everybody the reminder
         // Send a broadcast to any player that doesn't have the SS setting set
-        int keybindSettingId = MainPlugin.Singleton.SsKeybindSetting.SettingId;
-        foreach (Player player in Player.List)
+        if (MainPlugin.Configs.ShowHints)
         {
-            //Log.Debug($"Checking player: {player.Nickname}");
-            bool hasKeybindSetting = ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, keybindSettingId, out SSKeybindSetting result);
-            if (!hasKeybindSetting || (result is not null && result.AssignedKeyCode != KeyCode.F))
+            int keybindSettingId = MainPlugin.Singleton.ChangeSongKeybind.SettingId;
+            foreach (Player player in Player.List)
             {
-                //Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
-                player.ShowHint("Make sure Boombox Key is bound to F in server-specific settings!!!", 10.0f);
+                bool hasKeybindSetting = ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, keybindSettingId, out SSKeybindSetting result);
+                if (!hasKeybindSetting)
+                {
+                    Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
+                    player.ShowHint("Make sure Boombox Key is bound to F in server-specific settings!!!", 10.0f);
+                }
             }
         }
 
@@ -280,6 +284,10 @@ public class Boombox : CustomItem
         {
             Log.Error($"Tried to retrieve Pickup with serial={BoomboxSerial}, but it could not cast to an Pickup");
         }
+        if (MainPlugin.Configs.EasterEggEnabled)
+        {
+            EasterEggUsed = false;
+        }
     }
 
     protected void OnRoundEnded(RoundEndedEventArgs ev)
@@ -318,7 +326,7 @@ public class Boombox : CustomItem
         }
         if (ev.Player.UserId == "76561198076399181@steam")
         {
-            ev.Player.ShowHint($"get fucked idiot", 3.0f);
+            ev.Player.ShowHint($"get fucked idiot - you get it back when you right some code", 5.0f);
             ev.IsAllowed = false;
             return;
         }
@@ -420,13 +428,6 @@ public class Boombox : CustomItem
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
     public void OnRadioUsed(Player player, Item currentItem)
     {
-        //Radio boombox = (Radio)currentItem;
-        //Log.Debug($"-- range: {boombox.Range}");
-        //Log.Error($"-- isEnabled: {boombox.IsEnabled}");
-        //Log.Error($"-- current max range: {boombox.RangeSettings.MaxRange}");
-        //SetBoomboxSettings(boombox);
-        //Log.Error($"-- max range after: {boombox.RangeSettings.MaxRange}");
-
         if (!Check(currentItem))
         {
             return;
@@ -446,7 +447,10 @@ public class Boombox : CustomItem
             return;
         }
         Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
-        ev.Player.ShowHint($"Changed playlist to {PlaylistNames[ev.NewValue]}", 1.0f);
+        if (MainPlugin.Configs.ShowHints)
+        {
+            ev.Player.ShowHint($"Changed playlist to {PlaylistNames[ev.NewValue]}", 1.0f);
+        }
 
         if (AudioPlayer is not null)
         {
@@ -553,33 +557,22 @@ public class Boombox : CustomItem
         string song = Playlists[range][PlaylistIndexes[range]].Replace(".ogg", "");
         CurrentPlayback = AudioPlayer.AddClip(song);
         Log.Debug($"Added clip '{CurrentPlayback.Clip}' to boombox audio player");
-        player.ShowHint($"Changed song to {song}", 0.5f);
+        if (MainPlugin.Configs.ShowHints)
+        {
+            player.ShowHint($"Changed song to {song}", 0.5f);
+        }
 
-        // TODO: Use this code for a small chance of warhead shake when "again" is played, maybe only when Jared uses it
-
-        //if (song == "again")    // and player == jared
-        //{
-        //    Log.Debug($"playing fetty wap. shaking in 10");
-        //    AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"GLOBAL FETTY", onIntialCreation: (p) =>
-        //    {
-        //        // sad volume :( multi-speaker hack seems to bug out in global
-        //        Speaker speaker = p.AddSpeaker($"Global", isSpatial: false, maxDistance: 5000f);
-        //    });
-        //    var playback = audioPlayer.AddClip(song);
-
-        //    // shake the world for fetty
-        //    fettyHandle = Timing.CallDelayed(10.5f, () =>
-        //    {
-        //        Log.Debug($"SHAKE");
-        //        Warhead.Shake();
-        //    });
-        //}
-        //else
-        //{
-        //    CurrentPlayback = AudioPlayer.AddClip(song);
-        //    Log.Debug($"Added clip '{CurrentPlayback.Clip}' to boombox audio player");
-        //    Timing.KillCoroutines(fettyHandle);
-        //}
+        if (MainPlugin.Configs.EasterEggEnabled)
+        {
+            if (song == MainPlugin.Configs.EasterEggSong && player.UserId == MainPlugin.Configs.EasterEggPlayerId)
+            {
+                PlayWarhead();
+            }
+            else
+            {
+                Timing.KillCoroutines(EasterEggHandle);
+            }
+        }
 
         //if (addAllSongs)
         //{
@@ -600,6 +593,30 @@ public class Boombox : CustomItem
         //    AudioPlayer.
         //    Log.Debug($"-- {i}: {clip}");
         //}
+    }
+
+    private void PlayWarhead()
+    {
+        if (EasterEggUsed)
+        {
+            Log.Debug($"Easter egg has already been used this round");
+            return;
+        }
+
+        Log.Debug($"EasterEggSong '{MainPlugin.Configs.EasterEggSong}' played - queuing shake");
+        AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"GLOBAL", onIntialCreation: (p) =>
+        {
+            // sad volume :( multi-speaker hack seems to bug out in global
+            Speaker speaker = p.AddSpeaker($"Global", isSpatial: false, maxDistance: 5000f);
+        });
+
+        // shake the world
+        EasterEggHandle = Timing.CallDelayed(MainPlugin.Configs.EasterEggDelay, () =>
+        {
+            Log.Debug($"SHAKE");
+            Warhead.Shake();
+            EasterEggUsed = true;
+        });
     }
 
     // The boombox's radio settings need to be set to ensure it can't be used like a regular radio.
