@@ -8,6 +8,7 @@ using UnityEngine;
 using UserSettings.ServerSpecific;
 using Boombox.Utils;
 using Random = System.Random;
+using ServerEvents = Exiled.Events.Handlers.Server;
 
 namespace Boombox;
 
@@ -33,7 +34,7 @@ public class MainPlugin : Plugin<Config>
 
     public static Random Random { get; private set; }
 
-    public SSKeybindSetting SsKeybindSetting { get; private set; } = new SSKeybindSetting(69, $"BOOMBOX - Change Song - {KeyCode.F}", KeyCode.F);
+    public SSKeybindSetting ChangeSongKeybind { get; private set; } = new SSKeybindSetting(null, $"BOOMBOX - Change Song", KeyCode.F, preventInteractionOnGui: true, allowSpectatorTrigger: false);
 
     public override void OnEnabled()
     {
@@ -77,23 +78,6 @@ public class MainPlugin : Plugin<Config>
         playlistTest = Boombox.Playlists[RadioRange.Long];
         playlistTest = Boombox.Playlists[RadioRange.Ultra];
 
-        // Set up server-specific settings for the change-song key (F)
-        if (ServerSpecificSettingsSync.DefinedSettings == null)
-        {
-            Log.Debug($"Creating new DefinedSettings list for ServerSpecificSettingsSync");
-            ServerSpecificSettingsSync.DefinedSettings = new ServerSpecificSettingBase[]
-            {
-                SsKeybindSetting,
-            };
-        }
-        else
-        {
-            ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings.Append(SsKeybindSetting).ToArray();
-        }
-        Log.Debug($"Added SSKeybindSetting to server: {SsKeybindSetting.Label}");
-        ServerSpecificSettingsSync.SendToAll();
-        ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;
-
         // Register custom items here
         Log.Debug("Registering custom items...");
         try
@@ -116,12 +100,18 @@ public class MainPlugin : Plugin<Config>
         AudioHelper.LoadAudioClips(Boombox.AudioPath, Boombox.Playlists[RadioRange.Ultra]);
         Log.Info($"Finished loading audio clips");
 
+        // Register events
+        ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;
+        ServerEvents.RoundStarted += OnRoundStarted;
+
         base.OnEnabled();
     }
 
     public override void OnDisabled()
     {
         base.OnDisabled();
+        ServerSpecificSettingsSync.ServerOnSettingValueReceived -= OnSSInput;
+        ServerEvents.RoundStarted -= OnRoundStarted;
 
         Log.Debug("Un-registering custom items...");
         try
@@ -134,24 +124,27 @@ public class MainPlugin : Plugin<Config>
             Log.Error("Some custom items failed to un-register");
             Log.Debug(ex);
         }
-
-        ServerSpecificSettingsSync.ServerOnSettingValueReceived -= OnSSInput;
-
         Singleton = null;
+    }
+
+    public void OnRoundStarted()
+    {
+        // Set up server-specific settings for the change-song key
+        ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings.Append(ChangeSongKeybind).ToArray();
+        ServerSpecificSettingsSync.SendToAll();
+        Log.Debug($"Added SSKeybindSetting to server: {ChangeSongKeybind.Label}");
     }
 
     public void OnSSInput(ReferenceHub sender, ServerSpecificSettingBase setting)
     {
-        if (setting.OriginalDefinition is SSKeybindSetting sSKeybind && (setting as SSKeybindSetting).SyncIsPressed)
+        if (setting.OriginalDefinition is SSKeybindSetting ssKeybind && (setting as SSKeybindSetting).SyncIsPressed)
         {
-            KeyCode key = sSKeybind.SuggestedKey;
-            if (key == KeyCode.F)
+            if (ssKeybind.SettingId == ChangeSongKeybind.SettingId)
             {
-                LabApi.Features.Wrappers.Player labPlayer = LabApi.Features.Wrappers.Player.Get(sender);
-                Player player = labPlayer;
+                Player player = Player.Get(sender);
                 if (player.CurrentItem is not null && player.CurrentItem.Serial == (ushort)Boombox.BoomboxSerial)
                 {
-                    Log.Debug($"Player {player.Nickname} pressed the F key while holding the boombox");
+                    Log.Debug($"Player {player.Nickname} pressed the ChangeSong key while holding the boombox");
                     Boombox.OnRadioUsed(player, player.CurrentItem);
                 }
             }
