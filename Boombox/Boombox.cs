@@ -52,9 +52,6 @@ public class Boombox : CustomItem
     public override ItemType Type { get; set; } = ItemType.Radio;
 
     [YamlIgnore]
-    public string AudioPath => Path.Combine(Paths.Exiled, "Audio", "Boombox");
-
-    [YamlIgnore]
     public string AudioPlayerName => GetType().Name;
 
     // NOTE: For multiple boomboxes, needs to be a list (or a dict/set for no duplicates)
@@ -562,7 +559,7 @@ public class Boombox : CustomItem
 
         if (MainPlugin.Configs.EasterEggEnabled)
         {
-            if (song == MainPlugin.Configs.EasterEggSong && player.UserId == MainPlugin.Configs.EasterEggPlayerId)
+            if (song == MainPlugin.Configs.EasterEggSong && player.UserId == MainPlugin.Configs.EasterEggSteamId)
             {
                 PlayWarhead();
             }
@@ -611,9 +608,9 @@ public class Boombox : CustomItem
         // shake the world
         EasterEggHandle = Timing.CallDelayed(MainPlugin.Configs.EasterEggDelay, () =>
         {
+            EasterEggUsed = true;
             Log.Debug($"SHAKE");
             Warhead.Shake();
-            EasterEggUsed = true;
         });
     }
 
