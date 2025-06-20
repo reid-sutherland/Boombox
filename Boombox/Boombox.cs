@@ -487,8 +487,7 @@ public class Boombox : CustomItem
         }
     }
 
-    // Make the battery drain as slow as possible
-    // Note: Setting it to <1 just makes the battery always dead for some reason
+    // Disable battery drain on Boombox
     protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
     {
         if (!Check(ev.Radio))
@@ -499,7 +498,6 @@ public class Boombox : CustomItem
     }
 
     // Same as above
-    // Note: I think this applies when an un-held radio on the ground is using battery
     protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
     {
         if (!Check(ev.RadioPickup))

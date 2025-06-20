@@ -4,7 +4,7 @@
 		<OutputType>Library</OutputType>
 		<AssemblyName>Boombox</AssemblyName>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Configurations>Debug;Release;Installer</Configurations>
+		<Configurations>Debug;Release</Configurations>
 		<Platforms>AnyCPU</Platforms>
 	</PropertyGroup>
 
