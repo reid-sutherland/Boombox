@@ -1,3 +1,6 @@
+global using Log = CommonUtils.Core.Utils.Logger;
+
+using CommonUtils.Core.Utils;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
@@ -6,7 +9,6 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UserSettings.ServerSpecific;
-using Boombox.Utils;
 using Random = System.Random;
 using ServerEvents = Exiled.Events.Handlers.Server;
 
@@ -42,6 +44,7 @@ public class MainPlugin : Plugin<Config>
     {
         Singleton = this;
         Random = new();
+        Log.PrintDebug = Configs.Debug;
 
         // Validate config i guess
         Configs.Validate();

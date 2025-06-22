@@ -1,5 +1,5 @@
-﻿using Exiled.API.Enums;
-using Exiled.API.Extensions;
+﻿using CommonUtils.Core.Utils;
+using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
 using Exiled.API.Features.Items;
@@ -14,12 +14,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.IO;
 using UnityEngine;
 using UserSettings.ServerSpecific;
 using YamlDotNet.Serialization;
 //using EBroadcast = Exiled.API.Features.Broadcast;
-using Boombox.Utils;
 
 namespace Boombox;
 
@@ -333,7 +331,7 @@ public class Boombox : CustomItem
         Log.Debug($"{ev.Player.Nickname} is picking up the boombox: serial={ev.Pickup.Serial}");
         if (AudioPlayer is not null)
         {
-            AudioHelper.SetAudioPlayerParent(AudioPlayer, ev.Player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
+            AudioHelper.AttachAudioPlayer(AudioPlayer, ev.Player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
         }
     }
 
@@ -369,7 +367,7 @@ public class Boombox : CustomItem
         SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
         if (AudioPlayer is not null)
         {
-            AudioHelper.SetAudioPlayerParent(AudioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
+            AudioHelper.AttachAudioPlayer(AudioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
         }
     }
 
@@ -401,7 +399,7 @@ public class Boombox : CustomItem
                 if (boomboxPickup is not null)
                 {
                     Log.Debug($"-- pickup pos: {boomboxPickup.Position}");
-                    AudioHelper.SetAudioPlayerParent(AudioPlayer, boomboxPickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
+                    AudioHelper.AttachAudioPlayer(AudioPlayer, boomboxPickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
                 }
                 else
                 {
