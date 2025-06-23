@@ -1,4 +1,4 @@
-﻿using CommonUtils.Core.Utils;
+﻿using CommonUtils.Core;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
