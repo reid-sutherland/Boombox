@@ -29,7 +29,7 @@ public sealed class Config : IConfig
     [Description("Do not include file extension here.")]
     public string EasterEggSong { get; set; } = "";
 
-    public string EasterEggSteamId { get; set; } = "";
+    public string EasterEggPlayerId { get; set; } = "";
 
     public float EasterEggDelay { get; set; } = 0.0f;
 
@@ -86,10 +86,10 @@ public sealed class Config : IConfig
                 EasterEggEnabled = false;
                 Log.Warn($"Config had EasterEggEnabled but EasterEggSong does not exist: {EasterEggSong}");
             }
-            if (string.IsNullOrEmpty(EasterEggSteamId) || !EasterEggSteamId.Contains("@steam"))
+            if (string.IsNullOrEmpty(EasterEggPlayerId) || !EasterEggPlayerId.Contains("@steam"))
             {
                 EasterEggEnabled = false;
-                Log.Warn($"Config had EasterEggEnabled but EasterEggSteamId is invalid: {EasterEggSteamId}");
+                Log.Warn($"Config had EasterEggEnabled but EasterEggSteamId is invalid: {EasterEggPlayerId}");
             }
             if (EasterEggDelay < 0.0f)
             {

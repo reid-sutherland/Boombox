@@ -17,7 +17,6 @@ using System.Linq;
 using UnityEngine;
 using UserSettings.ServerSpecific;
 using YamlDotNet.Serialization;
-//using EBroadcast = Exiled.API.Features.Broadcast;
 
 namespace Boombox;
 
@@ -225,6 +224,7 @@ public class Boombox : CustomItem
         }
         else if (TrackedSerials.Count > 1)
         {
+            // This shouldn't happen but if it does, just destroy all but one
             string serials = string.Join(", ", TrackedSerials.Select(ser => ser.ToString()));
             Log.Error($"Found multiple spawned boomboxes: {serials}");
             try
@@ -380,10 +380,6 @@ public class Boombox : CustomItem
             Log.Debug($"{ev.Player.Nickname} is dying with the boombox - serial={boombox.Serial}");
             DiedWithPlayerId = ev.Player.UserId;
         }
-        else
-        {
-            Log.Debug($"Player {ev.Player.Nickname} is dying without the boombox: {BoomboxSerial}");
-        }
     }
 
     // Moves the audio player from the player to the dropped pickup if the dead player was dying with the boombox
@@ -403,20 +399,16 @@ public class Boombox : CustomItem
                 }
                 else
                 {
-                    Log.Error($"!!!!!!!!!!!!!!!! but a Pickup was not found with serial: {BoomboxSerial}");
+                    Log.Error($"!!! ... but a Pickup was not found with serial: {BoomboxSerial}");
                 }
+
+                Log.Debug($"Clearing DiedWithPlayerId: {DiedWithPlayerId}");
+                DiedWithPlayerId = "";
             }
             else
             {
-                Log.Error($"Player ${ev.Player.Nickname} has died but it does not match the player from OnDying");
+                Log.Warn($"Player ${ev.Player.Nickname} has died but it does not match the player from OnDying");
             }
-
-            Log.Debug($"Clearing DiedWithPlayerId: {DiedWithPlayerId}");
-            DiedWithPlayerId = "";
-        }
-        else
-        {
-            Log.Debug($"Player {ev.Player.Nickname} has died but nobody died with the boombox");
         }
     }
 
@@ -502,12 +494,8 @@ public class Boombox : CustomItem
         ev.IsAllowed = false;
     }
 
-    public void PlaySong(Player player, bool isEnabled, RadioRange range, QueueType queueType, bool addAllSongs = true, bool shuffle = false)
+    public void PlaySong(Player player, bool isEnabled, RadioRange range, QueueType queueType, bool addAllSongs = true)
     {
-        if (shuffle)
-        {
-            throw new Exception("Shuffle is not yet supported :)");
-        }
         if (Playlists[range].Count == 0)
         {
             Log.Error($"No songs in the playlist for range: {range}");
@@ -515,7 +503,7 @@ public class Boombox : CustomItem
         }
         if (!isEnabled)
         {
-            Log.Debug($"Boombox is off, can't play");
+            Log.Debug($"Can't play song: Boombox is off");
             return;
         }
 
@@ -525,6 +513,7 @@ public class Boombox : CustomItem
             CurrentPlayback = null;
         }
 
+        // TODO: Try replacing these with circular buffers
         switch (queueType)
         {
             case QueueType.Next:

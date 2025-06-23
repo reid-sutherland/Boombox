@@ -10,7 +10,7 @@
 
 	<!-- For development: copy output dll directly to EXILED path -->
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Copy SourceFiles="$(ProjectDir)bin\Debug\$(ProjectName).dll" DestinationFolder="$(EXILED_PLUGINS)" SkipUnchangedFiles="false" />
+		<Copy SourceFiles="$(OutputPath)\$(ProjectName).dll" DestinationFolder="$(EXILED_PLUGINS)" SkipUnchangedFiles="false" />
 	</Target>
 
 	<Import Project="../Plugin.props" />
