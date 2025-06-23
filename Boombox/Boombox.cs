@@ -319,9 +319,9 @@ public class Boombox : CustomItem
         {
             return;
         }
-        if (ev.Player.UserId == "76561198076399181@steam")
+        if (MainPlugin.Configs.BannedPlayerIds.Contains(ev.Player.UserId))
         {
-            ev.Player.ShowHint($"get fucked idiot - you get it back when you right some code", 5.0f);
+            ev.Player.ShowHint(MainPlugin.Configs.BannedMessage, 5.0f);
             ev.IsAllowed = false;
             return;
         }

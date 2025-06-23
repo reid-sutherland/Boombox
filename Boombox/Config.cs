@@ -33,6 +33,12 @@ public sealed class Config : IConfig
 
     public float EasterEggDelay { get; set; } = 0.0f;
 
+    [Description("If someone is being naughty then put their SteamID here to block them from Boombox interaction.")]
+    public List<string> BannedPlayerIds { get; set; } = new();
+
+    [Description("Hint to be shown to a banned player that tries to pick up the Boombox.")]
+    public string BannedMessage { get; set; } = "You are currently banned from using the Boombox :)";
+
     public void Validate()
     {
         if (Boombox.SpawnProperties.Limit > 1)
