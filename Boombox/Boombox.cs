@@ -1,5 +1,6 @@
 ﻿using CommonUtils.Core;
 using Exiled.API.Enums;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
 using Exiled.API.Features.Items;
@@ -146,6 +147,10 @@ public class Boombox : CustomItem
         },
     };
 
+    // string is the song name, int is the index within its playlist
+    [YamlIgnore]
+    public List<Tuple<RadioRange, int, string>> AllSongs { get; set; } = new();
+
     protected override void SubscribeEvents()
     {
         // Rounds
@@ -216,6 +221,16 @@ public class Boombox : CustomItem
             { RadioRange.Long, 0 },
             { RadioRange.Ultra, 0 },
         };
+        // populate a list of all songs for shuffling
+        foreach (var item in Playlists)
+        {
+            int index = 0;
+            foreach (string song in item.Value)
+            {
+                AllSongs.Add(new(item.Key, index, song));
+                index++;
+            }
+        }
 
         BoomboxSerial = -1;
         if (TrackedSerials.Count <= 0)
@@ -412,20 +427,6 @@ public class Boombox : CustomItem
         }
     }
 
-    // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
-    public void OnRadioUsed(Player player, Item currentItem)
-    {
-        if (!Check(currentItem))
-        {
-            return;
-        }
-        Radio boombox = (Radio)currentItem;
-        if (boombox is not null)
-        {
-            PlaySong(player, boombox.IsEnabled, boombox.Range, QueueType.Next);
-        }
-    }
-
     // Changes the boombox playlist
     protected void OnChangingRadioPreset(ChangingRadioPresetEventArgs ev)
     {
@@ -439,9 +440,9 @@ public class Boombox : CustomItem
             ev.Player.ShowHint($"Changed playlist to {PlaylistNames[ev.NewValue]}", 1.0f);
         }
 
-        if (AudioPlayer is not null)
+        if (AudioPlayer is not null && ev.Radio.IsEnabled)
         {
-            PlaySong(ev.Player, ev.Radio.IsEnabled, ev.NewValue, QueueType.Current);
+            ChangeSong(ev.Player, ev.NewValue, QueueType.Current);
         }
     }
 
@@ -467,9 +468,9 @@ public class Boombox : CustomItem
                     CurrentPlayback.IsPaused = true;
                 }
             }
-            else
+            else if (ev.NewState)
             {
-                PlaySong(ev.Player, ev.NewState, ev.Radio.Range, QueueType.Current);
+                ChangeSong(ev.Player, ev.Radio.Range, QueueType.Current);
             }
         }
     }
@@ -494,23 +495,40 @@ public class Boombox : CustomItem
         ev.IsAllowed = false;
     }
 
-    public void PlaySong(Player player, bool isEnabled, RadioRange range, QueueType queueType, bool addAllSongs = true)
+    // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
+    public void OnBoomboxKeyPressed(Player player, Item currentItem, bool shuffle = false)
+    {
+        if (!Check(currentItem))
+        {
+            return;
+        }
+        Radio boombox = (Radio)currentItem;
+        if (boombox is not null)
+        {
+            if (boombox.IsEnabled)
+            {
+                if (shuffle)
+                {
+                    ShuffleSong(player, boombox.Range);
+                }
+                else
+                {
+                    ChangeSong(player, boombox.Range, QueueType.Next);
+                }
+            }
+            else
+            {
+                Log.Debug($"Can't interact: Boombox is off");
+            }
+        }
+    }
+
+    public void ChangeSong(Player player, RadioRange range, QueueType queueType, bool addAllSongs = true)
     {
         if (Playlists[range].Count == 0)
         {
             Log.Error($"No songs in the playlist for range: {range}");
             return;
-        }
-        if (!isEnabled)
-        {
-            Log.Debug($"Can't play song: Boombox is off");
-            return;
-        }
-
-        if (CurrentPlayback is not null)
-        {
-            AudioPlayer.RemoveClipByName(CurrentPlayback.Clip);
-            CurrentPlayback = null;
         }
 
         // TODO: Try replacing these with circular buffers
@@ -535,26 +553,8 @@ public class Boombox : CustomItem
             default:
                 break;
         }
-
-        string song = Playlists[range][PlaylistIndexes[range]].Replace(".ogg", "");
-        CurrentPlayback = AudioPlayer.AddClip(song);
-        Log.Debug($"Added clip '{CurrentPlayback.Clip}' to boombox audio player");
-        if (MainPlugin.Configs.ShowHints)
-        {
-            player.ShowHint($"Changed song to {song}", 0.5f);
-        }
-
-        if (MainPlugin.Configs.EasterEggEnabled)
-        {
-            if (song == MainPlugin.Configs.EasterEggSong && player.UserId == MainPlugin.Configs.EasterEggSteamId)
-            {
-                PlayWarhead();
-            }
-            else
-            {
-                Timing.KillCoroutines(EasterEggHandle);
-            }
-        }
+        string song = Playlists[range][PlaylistIndexes[range]];
+        PlaySong(song, player);
 
         //if (addAllSongs)
         //{
@@ -562,19 +562,64 @@ public class Boombox : CustomItem
         //}
     }
 
-    private void AddAllSongs(int startIndex)
+    public void ShuffleSong(Player player, RadioRange oldRange, bool addAllSongs = false)
     {
-        // TODO: This should be a coroutine that plays the next song after the playback time has elapsed
-        // But it also needs to check for pause / song change events
+        Tuple<RadioRange, int, string> randomSong = AllSongs.GetRandomValue();
+        RadioRange newRange = randomSong.Item1;
+        int newIndex = randomSong.Item2;
+        string newSong = randomSong.Item3;
+        Log.Debug($"-- random song: range={newRange} index={newIndex} song={newSong}");
+        if (newRange != oldRange)
+        {
+            // TODO: Change radio preset to the new range
+            Item boombox = Item.Get((ushort)BoomboxSerial);
+            if (boombox is not null)
+            {
+                Log.Debug($"Changing radio preset to range: {newRange} of random song: {newSong}");
+            }
+        }
+        PlaylistIndexes[newRange] = newIndex;
+        PlaySong(newSong, player);
+    }
 
-        //Log.Debug($"Adding all songs from start index: {startIndex}");
-        //for (int i = 0; i < songList.Count; i++)
-        //{
-        //    string clip = songList[(i + startIndex) % songList.Count].Replace(".ogg", "");
-        //    AudioPlayer.AddClip(clip);
-        //    AudioPlayer.
-        //    Log.Debug($"-- {i}: {clip}");
-        //}
+    private void PlaySong(string song, Player player = null, bool shuffle = false)
+    {
+        // Stop current song
+        if (CurrentPlayback is not null)
+        {
+            AudioPlayer.RemoveClipByName(CurrentPlayback.Clip);
+            CurrentPlayback = null;
+        }
+
+        song = song.Replace(".ogg", "");
+        if (AudioPlayer is null)
+        {
+            Log.Debug($"Can't play song '{song}': AudioPlayer is null");
+        }
+
+        CurrentPlayback = AudioPlayer.AddClip(song);
+        Log.Debug($"Added clip to boombox audio player: {CurrentPlayback.Clip}");
+        if (player is not null)
+        {
+            if (MainPlugin.Configs.ShowHints)
+            {
+                string action = shuffle ? "Shuffled" : "Changed";
+                player.ShowHint($"{action} song to {song}", 0.5f);
+            }
+
+            // Easter egg
+            if (MainPlugin.Configs.EasterEggEnabled)
+            {
+                if (song == MainPlugin.Configs.EasterEggSong && player.UserId == MainPlugin.Configs.EasterEggPlayerId)
+                {
+                    PlayWarhead();
+                }
+                else
+                {
+                    Timing.KillCoroutines(EasterEggHandle);
+                }
+            }
+        }
     }
 
     private void PlayWarhead()
@@ -599,6 +644,21 @@ public class Boombox : CustomItem
             Log.Debug($"SHAKE");
             Warhead.Shake();
         });
+    }
+
+    private void AddAllSongs(int startIndex)
+    {
+        // TODO: This should be a coroutine that plays the next song after the playback time has elapsed
+        // But it also needs to check for pause / song change events
+
+        //Log.Debug($"Adding all songs from start index: {startIndex}");
+        //for (int i = 0; i < songList.Count; i++)
+        //{
+        //    string clip = songList[(i + startIndex) % songList.Count].Replace(".ogg", "");
+        //    AudioPlayer.AddClip(clip);
+        //    AudioPlayer.
+        //    Log.Debug($"-- {i}: {clip}");
+        //}
     }
 
     // The boombox's radio settings need to be set to ensure it can't be used like a regular radio.

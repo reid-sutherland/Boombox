@@ -73,10 +73,20 @@ public sealed class Config : IConfig
         testName = Boombox.PlaylistNames[RadioRange.Medium];
         testName = Boombox.PlaylistNames[RadioRange.Long];
         testName = Boombox.PlaylistNames[RadioRange.Ultra];
+        // Check the counts as well, if there are no songs then the Boombox cannot function
+        int total = 0;
         List<string> playlistTest = Boombox.Playlists[RadioRange.Short];
+        total += playlistTest.Count;
         playlistTest = Boombox.Playlists[RadioRange.Medium];
+        total += playlistTest.Count;
         playlistTest = Boombox.Playlists[RadioRange.Long];
+        total += playlistTest.Count;
         playlistTest = Boombox.Playlists[RadioRange.Ultra];
+        total += playlistTest.Count;
+        if (total == 0)
+        {
+            throw new Exception("There are no songs in any of the playlists so the Boombox cannot function");
+        }
 
         // Check easter egg
         if (EasterEggEnabled)
