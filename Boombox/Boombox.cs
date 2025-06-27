@@ -382,15 +382,15 @@ public class Boombox : CustomItem
         {
             return;
         }
-        Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
-        if (MainPlugin.Configs.ShowHints)
+        if (ev.Radio.IsEnabled)
         {
-            ev.Player.ShowHint($"Changed playlist to {Playlists[ev.NewValue].Name}", 1.0f);
-        }
+            Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
 
-        if (AudioPlayer is not null && ev.Radio.IsEnabled)
-        {
-            ChangeSong(ev.Player, ev.NewValue, QueueType.Current);
+            ChangeSong(ev.Player, ev.NewValue, QueueType.Current, showHint: false);                 // disable change-song hint so it doesn't conflict with the change-playlist hint above
+            if (MainPlugin.Configs.ShowHints && Playlists[ev.NewValue].Length > 0)
+            {
+                ev.Player.ShowHint($"Changed playlist to '{Playlists[ev.NewValue].Name}'", 1.0f);     // don't show a conflicting hint if the playlist is empty
+            }
         }
     }
 
@@ -471,11 +471,16 @@ public class Boombox : CustomItem
         }
     }
 
-    public void ChangeSong(Player player, RadioRange range, QueueType queueType, bool addAllSongs = true)
+    public void ChangeSong(Player player, RadioRange range, QueueType queueType, bool showHint = true, bool addAllSongs = true)
     {
-        if (Playlists[range].Length == 0)
+        Playlist playlist = Playlists[range];
+        if (playlist.Length == 0)
         {
-            Log.Error($"No songs in the playlist for range: {range}");
+            Log.Debug($"No songs in the playlist for range: {range}");
+            if (MainPlugin.Configs.ShowHints)
+            {
+                player.ShowHint($"Playlist '{playlist.Name}' has no songs :(", 2.0f);
+            }
             return;
         }
 
@@ -492,7 +497,7 @@ public class Boombox : CustomItem
             default:
                 break;
         }
-        PlaySong(Playlists[range].CurrentSong, player);
+        PlaySong(Playlists[range].CurrentSong, player, showHint);
 
         //if (addAllSongs)
         //{
@@ -506,7 +511,7 @@ public class Boombox : CustomItem
         RadioRange newRange = randomSong.Item1;
         int newIndex = randomSong.Item2;
         string newSong = randomSong.Item3;
-        Log.Debug($"-- random song: range={newRange} index={newIndex} song={newSong}");
+        Log.Debug($"Shuffled song to '{newSong}' (range={newRange} index={newIndex})");
 
         // Set the radio and song index to the new range and playlist position
         Playlists[newRange].SongIndex = newIndex;
@@ -515,17 +520,28 @@ public class Boombox : CustomItem
             Radio radio = (Radio)Item.Get((ushort)BoomboxSerial);
             if (radio is not null)
             {
-                Log.Debug($"Changing radio preset to range: {newRange} of random song: {newSong}");
+                Log.Debug($"-- changing radio range to {newRange}");
                 // TODO: Change radio preset to the new range
                 radio.Range = newRange;
+            }
+            else
+            {
+                Log.Warn($"-- could not change radio range to {newRange}: boombox Radio is null");
             }
         }
 
         PlaySong(newSong, player);
     }
 
-    private void PlaySong(string song, Player player = null, bool shuffle = false)
+    private void PlaySong(string song, Player player = null, bool shuffle = false, bool showHint = true)
     {
+        song = song.Replace(".ogg", "");
+        if (AudioPlayer is null)
+        {
+            Log.Error($"Can't play song '{song}': AudioPlayer is null");
+            return;
+        }
+
         // Stop current song
         if (CurrentPlayback is not null)
         {
@@ -533,20 +549,14 @@ public class Boombox : CustomItem
             CurrentPlayback = null;
         }
 
-        song = song.Replace(".ogg", "");
-        if (AudioPlayer is null)
-        {
-            Log.Debug($"Can't play song '{song}': AudioPlayer is null");
-        }
-
         CurrentPlayback = AudioPlayer.AddClip(song);
         Log.Debug($"Added clip to boombox audio player: {CurrentPlayback.Clip}");
         if (player is not null)
         {
-            if (MainPlugin.Configs.ShowHints)
+            if (MainPlugin.Configs.ShowHints && showHint)
             {
                 string action = shuffle ? "Shuffled" : "Changed";
-                player.ShowHint($"{action} song to {song}", 0.5f);
+                player.ShowHint($"{action} song to '{song}'", 0.5f);
             }
 
             // Easter egg

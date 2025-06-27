@@ -69,6 +69,7 @@ public sealed class Config : IConfig
 
         // Check the count of each range's playlist to enforce at least one song
         // - if any of these throw, then the plugin will throw anyways so might as well catch it here
+        // - the rest of the plugin assumes that each range has a non-null Playlist object (probably bad design)
         int total = 0;
         total += Boombox.Playlists[RadioRange.Short].Length;
         total += Boombox.Playlists[RadioRange.Medium].Length;
