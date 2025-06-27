@@ -23,14 +23,17 @@ public sealed class Config : IConfig
     [Description("Configure the Boombox's properties here")]
     public Boombox Boombox { get; set; } = new();
 
-    [Description("Whether the J A R E D warhead easter egg is active.")]
+    [Description("Whether the J A R E D warhead easter egg is active. While enabled, once per round, a fake warhead animation will trigger when the easter egg conditions are met, for the memes.")]
     public bool EasterEggEnabled { get; set; } = false;
 
-    [Description("Do not include file extension here.")]
+    [Description("Song name that should trigger the easter egg. Do not include file extension.")]
     public string EasterEggSong { get; set; } = "";
 
+    [Description("SteamID of player that can trigger the easter egg.")]
     public string EasterEggPlayerId { get; set; } = "";
 
+    [Description("How long (in seconds) to delay the animation once the easter egg is activated. This should line up with a sick drop within the song for maximum effect." +
+        "Note that if the song is changed before the animation triggers, the sequence will abort and the easter egg can still be re-activated.")]
     public float EasterEggDelay { get; set; } = 0.0f;
 
     [Description("If someone is being naughty then put their SteamID here to block them from Boombox interaction.")]
@@ -49,25 +52,25 @@ public sealed class Config : IConfig
         if (Boombox.SpeakerVolume <= 0.0 || Boombox.SpeakerVolume > 1.0)
         {
             Boombox.SpeakerVolume = 1.0f;
-            Log.Warn($"Config had invalid value for SpeakerVolume: defaulting to {Boombox.SpeakerVolume}");
+            Log.Warn($"Config had invalid value for SpeakerVolume: {Boombox.SpeakerVolume} - defaulting to {Boombox.SpeakerVolume}");
         }
         if (Boombox.SpeakerCount <= 0 || Boombox.SpeakerCount > 20)
         {
             Boombox.SpeakerCount = 1;
-            Log.Warn($"Config had invalid value for SpeakerCount: defaulting to {Boombox.SpeakerCount}");
+            Log.Warn($"Config had invalid value for SpeakerCount: {Boombox.SpeakerCount} - defaulting to {Boombox.SpeakerCount}");
         }
-        if (Boombox.MinDistance <= 1.0)
+        if (Boombox.MinDistance < 1.0)
         {
             Boombox.MinDistance = 1.0f;
-            Log.Warn($"Config had invalid value for MinDistance: defaulting to {Boombox.MinDistance}");
+            Log.Warn($"Config had invalid value for MinDistance: {Boombox.MinDistance} - defaulting to {Boombox.MinDistance}");
         }
         if (Boombox.MaxDistance <= Boombox.MinDistance)
         {
             Boombox.MaxDistance = Boombox.MinDistance + 20.0f;
-            Log.Warn($"Config had invalid value for MaxDistance: defaulting to {Boombox.MaxDistance}");
+            Log.Warn($"Config had invalid value for MaxDistance: {Boombox.MaxDistance} - defaulting to {Boombox.MaxDistance}");
         }
 
-        // Check the count of each range's playlist to enforce at least one song
+        // Check the count of each range's playlist
         // - if any of these throw, then the plugin will throw anyways so might as well catch it here
         // - the rest of the plugin assumes that each range has a non-null Playlist object (probably bad design)
         int total = 0;
@@ -77,7 +80,7 @@ public sealed class Config : IConfig
         total += Boombox.Playlists[RadioRange.Ultra].Length;
         if (total == 0)
         {
-            throw new Exception("There are no songs in any of the playlists so the Boombox cannot function");
+            Log.Warn($"Config has no songs in any playlists, so the boombox will not function properly");
         }
 
         // Check easter egg

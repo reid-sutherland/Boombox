@@ -14,6 +14,14 @@ public enum QueueType
 
 public class Playlists : Dictionary<RadioRange, Playlist>
 {
+    // Default constructor so a generated config will have all keys with empty playlists
+    public Playlists()
+    {
+        Add(RadioRange.Short, new Playlist() { Name = RadioRange.Short.ToString() });
+        Add(RadioRange.Medium, new Playlist() { Name = RadioRange.Medium.ToString() });
+        Add(RadioRange.Long, new Playlist() { Name = RadioRange.Long.ToString() });
+        Add(RadioRange.Ultra, new Playlist() { Name = RadioRange.Ultra.ToString() });
+    }
 }
 
 public class Playlist
@@ -30,6 +38,7 @@ public class Playlist
     [YamlIgnore]
     public int Length => Songs.Count;
 
+    [YamlIgnore]
     public string CurrentSong => Songs[SongIndex];
 
     public void NextSong()

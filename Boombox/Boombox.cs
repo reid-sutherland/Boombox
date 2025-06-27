@@ -370,6 +370,26 @@ public class Boombox : CustomItem
         }
     }
 
+    // Disable battery drain on Boombox
+    protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
+    {
+        if (!Check(ev.Radio))
+        {
+            return;
+        }
+        ev.IsAllowed = false;
+    }
+
+    // Same as above
+    protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
+    {
+        if (!Check(ev.RadioPickup))
+        {
+            return;
+        }
+        ev.IsAllowed = false;
+    }
+
     // Changes the boombox playlist
     protected void OnChangingRadioPreset(ChangingRadioPresetEventArgs ev)
     {
@@ -381,11 +401,11 @@ public class Boombox : CustomItem
         {
             Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
 
-            ChangeSong(ev.Player, ev.NewValue, QueueType.Current, showHint: false);                 // disable change-song hint so it doesn't conflict with the change-playlist hint above
             if (Config.ShowHints && Playlists[ev.NewValue].Length > 0)
             {
-                ev.Player.ShowHint($"Changed playlist to '{Playlists[ev.NewValue].Name}'", 1.0f);     // don't show a conflicting hint if the playlist is empty
+                ev.Player.ShowHint($"Changed playlist to '{Playlists[ev.NewValue].Name}'", 1.0f);   // don't show a conflicting hint if the playlist is empty
             }
+            ChangeSong(ev.Player, ev.NewValue, QueueType.Current, showHint: false);                 // disable change-song hint so it doesn't conflict with the change-playlist hint above
         }
     }
 
@@ -418,26 +438,6 @@ public class Boombox : CustomItem
         }
     }
 
-    // Disable battery drain on Boombox
-    protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
-    {
-        if (!Check(ev.Radio))
-        {
-            return;
-        }
-        ev.IsAllowed = false;
-    }
-
-    // Same as above
-    protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
-    {
-        if (!Check(ev.RadioPickup))
-        {
-            return;
-        }
-        ev.IsAllowed = false;
-    }
-
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
     public void OnBoomboxKeyPressed(Player player, Item currentItem, bool shuffle = false)
     {
@@ -446,23 +446,25 @@ public class Boombox : CustomItem
             return;
         }
         Radio boombox = (Radio)currentItem;
-        if (boombox is not null)
+        if (boombox is null)
         {
-            if (boombox.IsEnabled)
+            return;
+        }
+
+        if (boombox.IsEnabled)
+        {
+            if (shuffle)
             {
-                if (shuffle)
-                {
-                    ShuffleSong(player, boombox.Range);
-                }
-                else
-                {
-                    ChangeSong(player, boombox.Range, QueueType.Next);
-                }
+                ShuffleSong(player, boombox.Range);
             }
             else
             {
-                Log.Debug($"Can't interact: Boombox is off");
+                ChangeSong(player, boombox.Range, QueueType.Next);
             }
+        }
+        else
+        {
+            Log.Debug($"Can't interact: Boombox is off");
         }
     }
 
@@ -474,7 +476,7 @@ public class Boombox : CustomItem
             Log.Debug($"No songs in the playlist for range: {range}");
             if (Config.ShowHints)
             {
-                player.ShowHint($"Playlist '{playlist.Name}' has no songs :(", 2.0f);
+                player.ShowHint($"Playlist '{playlist.Name}' has no songs :(", 1.0f);
             }
             return;
         }
@@ -502,6 +504,16 @@ public class Boombox : CustomItem
 
     public void ShuffleSong(Player player, RadioRange oldRange, bool addAllSongs = false)
     {
+        if (AllSongs.Count == 0)
+        {
+            Log.Debug($"Can't shuffle: No songs in any playlists");
+            if (Config.ShowHints)
+            {
+                player.ShowHint($"Boombox has no songs to shuffle :(", 1.0f);
+            }
+            return;
+        }
+
         Tuple<RadioRange, int, string> randomSong = AllSongs.GetRandomValue();
         RadioRange newRange = randomSong.Item1;
         int newIndex = randomSong.Item2;
@@ -551,7 +563,7 @@ public class Boombox : CustomItem
             if (Config.ShowHints && showHint)
             {
                 string action = shuffle ? "Shuffled" : "Changed";
-                player.ShowHint($"{action} song to '{song}'", 0.5f);
+                player.ShowHint($"{action} song to '{song}'", 0.75f);
             }
 
             // Easter egg
@@ -559,7 +571,7 @@ public class Boombox : CustomItem
             {
                 if (song == Config.EasterEggSong && player.UserId == Config.EasterEggPlayerId)
                 {
-                    PlayWarhead();
+                    ActivateEasterEgg();
                 }
                 else
                 {
@@ -569,7 +581,7 @@ public class Boombox : CustomItem
         }
     }
 
-    private void PlayWarhead()
+    private void ActivateEasterEgg()
     {
         if (EasterEggUsed)
         {
@@ -577,6 +589,7 @@ public class Boombox : CustomItem
             return;
         }
 
+        // TODO: It seems that either 14.1 or LabAPI 1.1 broke the global speaker, needs a fix
         Log.Debug($"EasterEggSong '{Config.EasterEggSong}' played - queuing shake");
         AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"GLOBAL", onIntialCreation: (p) =>
         {
