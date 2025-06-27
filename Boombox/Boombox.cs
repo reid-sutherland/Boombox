@@ -49,12 +49,14 @@ public class Boombox : CustomItem
     [YamlIgnore]
     public override ItemType Type { get; set; } = ItemType.Radio;
 
-    [YamlIgnore]
-    public string AudioPlayerName => GetType().Name;
-
     // NOTE: For multiple boomboxes, needs to be a list (or a dict/set for no duplicates)
     [YamlIgnore]
     public int BoomboxSerial { get; set; } = -1;
+
+    [YamlIgnore]
+    public string AudioPlayerName => GetType().Name;
+
+    private Config Config => MainPlugin.Configs;
 
     private AudioPlayer AudioPlayer { get; set; } = null;
 
@@ -155,7 +157,7 @@ public class Boombox : CustomItem
     {
         // TODO: the checking is not working yet, but for now just give everybody the reminder
         // Send a broadcast to any player that doesn't have the SS setting set
-        if (MainPlugin.Configs.ShowHints)
+        if (Config.ShowHints)
         {
             int keybindSettingId = MainPlugin.Singleton.ChangeSongKeybind.SettingId;
             foreach (Player player in Player.List)
@@ -242,7 +244,7 @@ public class Boombox : CustomItem
         {
             Log.Error($"Tried to retrieve Pickup with serial={BoomboxSerial}, but it could not cast to an Pickup");
         }
-        if (MainPlugin.Configs.EasterEggEnabled)
+        if (Config.EasterEggEnabled)
         {
             EasterEggUsed = false;
         }
@@ -282,9 +284,9 @@ public class Boombox : CustomItem
         {
             return;
         }
-        if (MainPlugin.Configs.BannedPlayerIds.Contains(ev.Player.UserId))
+        if (Config.BannedPlayerIds.Contains(ev.Player.UserId))
         {
-            ev.Player.ShowHint(MainPlugin.Configs.BannedMessage, 5.0f);
+            ev.Player.ShowHint(Config.BannedMessage, 5.0f);
             ev.IsAllowed = false;
             return;
         }
@@ -387,7 +389,7 @@ public class Boombox : CustomItem
             Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
 
             ChangeSong(ev.Player, ev.NewValue, QueueType.Current, showHint: false);                 // disable change-song hint so it doesn't conflict with the change-playlist hint above
-            if (MainPlugin.Configs.ShowHints && Playlists[ev.NewValue].Length > 0)
+            if (Config.ShowHints && Playlists[ev.NewValue].Length > 0)
             {
                 ev.Player.ShowHint($"Changed playlist to '{Playlists[ev.NewValue].Name}'", 1.0f);     // don't show a conflicting hint if the playlist is empty
             }
@@ -477,7 +479,7 @@ public class Boombox : CustomItem
         if (playlist.Length == 0)
         {
             Log.Debug($"No songs in the playlist for range: {range}");
-            if (MainPlugin.Configs.ShowHints)
+            if (Config.ShowHints)
             {
                 player.ShowHint($"Playlist '{playlist.Name}' has no songs :(", 2.0f);
             }
@@ -553,16 +555,16 @@ public class Boombox : CustomItem
         Log.Debug($"Added clip to boombox audio player: {CurrentPlayback.Clip}");
         if (player is not null)
         {
-            if (MainPlugin.Configs.ShowHints && showHint)
+            if (Config.ShowHints && showHint)
             {
                 string action = shuffle ? "Shuffled" : "Changed";
                 player.ShowHint($"{action} song to '{song}'", 0.5f);
             }
 
             // Easter egg
-            if (MainPlugin.Configs.EasterEggEnabled)
+            if (Config.EasterEggEnabled)
             {
-                if (song == MainPlugin.Configs.EasterEggSong && player.UserId == MainPlugin.Configs.EasterEggPlayerId)
+                if (song == Config.EasterEggSong && player.UserId == Config.EasterEggPlayerId)
                 {
                     PlayWarhead();
                 }
@@ -582,7 +584,7 @@ public class Boombox : CustomItem
             return;
         }
 
-        Log.Debug($"EasterEggSong '{MainPlugin.Configs.EasterEggSong}' played - queuing shake");
+        Log.Debug($"EasterEggSong '{Config.EasterEggSong}' played - queuing shake");
         AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"GLOBAL", onIntialCreation: (p) =>
         {
             // sad volume :( multi-speaker hack seems to bug out in global
@@ -590,7 +592,7 @@ public class Boombox : CustomItem
         });
 
         // shake the world
-        EasterEggHandle = Timing.CallDelayed(MainPlugin.Configs.EasterEggDelay, () =>
+        EasterEggHandle = Timing.CallDelayed(Config.EasterEggDelay, () =>
         {
             EasterEggUsed = true;
             Log.Debug($"SHAKE");
