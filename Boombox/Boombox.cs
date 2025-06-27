@@ -74,15 +74,6 @@ public class Boombox : CustomItem
         MaxRange = 1,
     };
 
-    // This keeps track of where each playlist is in its rotation
-    private Dictionary<RadioRange, int> PlaylistIndexes { get; set; } = new()
-    {
-        { RadioRange.Short, 0 },
-        { RadioRange.Medium, 0 },
-        { RadioRange.Long, 0 },
-        { RadioRange.Ultra, 0 },
-    };
-
     [Description("Where the boombox can spawn. Currently a limit of 1 is required.")]
     public override SpawnProperties SpawnProperties { get; set; } = new()
     {
@@ -109,43 +100,8 @@ public class Boombox : CustomItem
     [Description("The audio will gradually fade in volume past the MinDistance until it completely disappears at this range.")]
     public float MaxDistance { get; set; } = 30.0f;
 
-    [Description("The names given to each playlist by RadioRange setting.")]
-    public Dictionary<RadioRange, string> PlaylistNames { get; set; } = new()
-    {
-        { RadioRange.Short, "Good Memes" },
-        { RadioRange.Medium, "Rap" },
-        { RadioRange.Long, "EDM / DnB" },
-        { RadioRange.Ultra, "Garbage Memes" },
-    };
-
-    [Description("The playlist of songs for each RadioRange setting.")]
-    public Dictionary<RadioRange, List<string>> Playlists { get; set; } = new()
-    {
-        // memes
-        {
-            RadioRange.Short, new()
-            {
-            }
-        },
-        // rap
-        {
-            RadioRange.Medium, new()
-            {
-            }
-        },
-        // edm/dnb
-        {
-            RadioRange.Long, new()
-            {
-            }
-        },
-        // garbage
-        {
-            RadioRange.Ultra, new()
-            {
-            }
-        },
-    };
+    [Description("The playlists of songs for each RadioRange setting.")]
+    public Playlists Playlists { get; set; } = new();
 
     // string is the song name, int is the index within its playlist
     [YamlIgnore]
@@ -213,22 +169,14 @@ public class Boombox : CustomItem
             }
         }
 
-        // TODO: Organize files by playlist directory
-        PlaylistIndexes = new()
-        {
-            { RadioRange.Short, 0 },
-            { RadioRange.Medium, 0 },
-            { RadioRange.Long, 0 },
-            { RadioRange.Ultra, 0 },
-        };
-        // populate a list of all songs for shuffling
+        // Populate a list of all songs for shuffling
+        AllSongs = new();
         foreach (var item in Playlists)
         {
-            int index = 0;
-            foreach (string song in item.Value)
+            Playlist playlist = item.Value;
+            for (int index = 0; index < playlist.Length; index++)
             {
-                AllSongs.Add(new(item.Key, index, song));
-                index++;
+                AllSongs.Add(new(item.Key, index, playlist.Songs[index]));
             }
         }
 
@@ -437,7 +385,7 @@ public class Boombox : CustomItem
         Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
         if (MainPlugin.Configs.ShowHints)
         {
-            ev.Player.ShowHint($"Changed playlist to {PlaylistNames[ev.NewValue]}", 1.0f);
+            ev.Player.ShowHint($"Changed playlist to {Playlists[ev.NewValue].Name}", 1.0f);
         }
 
         if (AudioPlayer is not null && ev.Radio.IsEnabled)
@@ -525,7 +473,7 @@ public class Boombox : CustomItem
 
     public void ChangeSong(Player player, RadioRange range, QueueType queueType, bool addAllSongs = true)
     {
-        if (Playlists[range].Count == 0)
+        if (Playlists[range].Length == 0)
         {
             Log.Error($"No songs in the playlist for range: {range}");
             return;
@@ -535,26 +483,16 @@ public class Boombox : CustomItem
         switch (queueType)
         {
             case QueueType.Next:
-                PlaylistIndexes[range]++;
-                if (PlaylistIndexes[range] >= Playlists[range].Count)
-                {
-                    PlaylistIndexes[range] = 0;
-                }
+                Playlists[range].NextSong();
                 break;
             case QueueType.Last:
-                PlaylistIndexes[range]--;
-                if (PlaylistIndexes[range] < 0)
-                {
-                    PlaylistIndexes[range] = Playlists[range].Count - 1;
-                }
+                Playlists[range].PreviousSong();
                 break;
             case QueueType.Current:
-                break;
             default:
                 break;
         }
-        string song = Playlists[range][PlaylistIndexes[range]];
-        PlaySong(song, player);
+        PlaySong(Playlists[range].CurrentSong, player);
 
         //if (addAllSongs)
         //{
@@ -569,16 +507,20 @@ public class Boombox : CustomItem
         int newIndex = randomSong.Item2;
         string newSong = randomSong.Item3;
         Log.Debug($"-- random song: range={newRange} index={newIndex} song={newSong}");
+
+        // Set the radio and song index to the new range and playlist position
+        Playlists[newRange].SongIndex = newIndex;
         if (newRange != oldRange)
         {
-            // TODO: Change radio preset to the new range
-            Item boombox = Item.Get((ushort)BoomboxSerial);
-            if (boombox is not null)
+            Radio radio = (Radio)Item.Get((ushort)BoomboxSerial);
+            if (radio is not null)
             {
                 Log.Debug($"Changing radio preset to range: {newRange} of random song: {newSong}");
+                // TODO: Change radio preset to the new range
+                radio.Range = newRange;
             }
         }
-        PlaylistIndexes[newRange] = newIndex;
+
         PlaySong(newSong, player);
     }
 

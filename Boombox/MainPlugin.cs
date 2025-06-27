@@ -72,10 +72,10 @@ public class MainPlugin : Plugin<Config>
         // Load audio files
         // TODO: If any files don't load, need to remove them from the playlists
         Log.Info($"Loading audio clips from directory: {AudioPath}");
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Short]);
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Medium]);
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Long]);
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Ultra]);
+        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Short].Songs);
+        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Medium].Songs);
+        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Long].Songs);
+        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Ultra].Songs);
         Log.Info($"Finished loading audio clips");
 
         // Register events

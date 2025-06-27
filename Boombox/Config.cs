@@ -39,6 +39,7 @@ public sealed class Config : IConfig
     [Description("Hint to be shown to a banned player that tries to pick up the Boombox.")]
     public string BannedMessage { get; set; } = "You are currently banned from using the Boombox :)";
 
+    // TODO: Return a Result class and have OnEnabled() throw instead if any fatal errors
     public void Validate()
     {
         if (Boombox.SpawnProperties.Limit > 1)
@@ -66,23 +67,13 @@ public sealed class Config : IConfig
             Log.Warn($"Config had invalid value for MaxDistance: defaulting to {Boombox.MaxDistance}");
         }
 
-        // Try getting each RadioRange value from the Boombox
-        // - if any of these throw, then the plugin will throw anyways so might as well throw here
-        // - it's okay for one of these to be empty or even null, but the dictionary key must exist
-        string testName = Boombox.PlaylistNames[RadioRange.Short];
-        testName = Boombox.PlaylistNames[RadioRange.Medium];
-        testName = Boombox.PlaylistNames[RadioRange.Long];
-        testName = Boombox.PlaylistNames[RadioRange.Ultra];
-        // Check the counts as well, if there are no songs then the Boombox cannot function
+        // Check the count of each range's playlist to enforce at least one song
+        // - if any of these throw, then the plugin will throw anyways so might as well catch it here
         int total = 0;
-        List<string> playlistTest = Boombox.Playlists[RadioRange.Short];
-        total += playlistTest.Count;
-        playlistTest = Boombox.Playlists[RadioRange.Medium];
-        total += playlistTest.Count;
-        playlistTest = Boombox.Playlists[RadioRange.Long];
-        total += playlistTest.Count;
-        playlistTest = Boombox.Playlists[RadioRange.Ultra];
-        total += playlistTest.Count;
+        total += Boombox.Playlists[RadioRange.Short].Length;
+        total += Boombox.Playlists[RadioRange.Medium].Length;
+        total += Boombox.Playlists[RadioRange.Long].Length;
+        total += Boombox.Playlists[RadioRange.Ultra].Length;
         if (total == 0)
         {
             throw new Exception("There are no songs in any of the playlists so the Boombox cannot function");
