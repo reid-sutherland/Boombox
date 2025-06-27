@@ -148,9 +148,8 @@ public class Boombox : CustomItem
 
     protected void OnRoundStarted()
     {
-        // TODO: the checking is not working yet, but for now just give everybody the reminder
         // Send a broadcast to any player that doesn't have the SS setting set
-        if (Config.ShowHints)
+        if (Config.ShowKeybindHints)
         {
             int keybindSettingId = MainPlugin.Singleton.ChangeSongKeybind.SettingId;
             foreach (Player player in Player.List)
@@ -158,8 +157,9 @@ public class Boombox : CustomItem
                 bool hasKeybindSetting = ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, keybindSettingId, out SSKeybindSetting result);
                 if (!hasKeybindSetting)
                 {
-                    Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
-                    player.ShowHint("Make sure Boombox Key is bound to F in server-specific settings!!!", 10.0f);
+                    // TODO: the checking is still inaccurate so don't spam logs, but for now just give everybody the reminder
+                    //Log.Warn($"Player {player.Nickname} does not have the server-specific key bound for boombox!");
+                    player.ShowHint("Make sure Boombox Key is bound to F in server-specific settings!!!", 5.0f);
                 }
             }
         }

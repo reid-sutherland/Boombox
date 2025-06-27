@@ -20,6 +20,9 @@ public sealed class Config : IConfig
     [Description("Whether hints should be shown with the song title, playlist title, etc.")]
     public bool ShowHints { get; set; } = true;
 
+    [Description("Whether players should be given a hint-reminder to set the boombox controls via ServerSpecific Settings, only if they don't have an assigned keybind on round start.")]
+    public bool ShowKeybindHints { get; set; } = false;
+
     [Description("Configure the Boombox's properties here")]
     public Boombox Boombox { get; set; } = new();
 
