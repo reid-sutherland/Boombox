@@ -5,6 +5,13 @@ using YamlDotNet.Serialization;
 
 namespace Boombox;
 
+public enum QueueType
+{
+    Current = 0,
+    Next,
+    Last,
+}
+
 public class Playlists : Dictionary<RadioRange, Playlist>
 {
 }

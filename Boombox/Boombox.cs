@@ -24,13 +24,6 @@ namespace Boombox;
 [CustomItem(ItemType.Radio)]
 public class Boombox : CustomItem
 {
-    public enum QueueType
-    {
-        Current = 0,
-        Next,
-        Last,
-    }
-
     [YamlIgnore]
     public override uint Id { get; set; } = 51;
 
@@ -55,6 +48,10 @@ public class Boombox : CustomItem
 
     [YamlIgnore]
     public string AudioPlayerName => GetType().Name;
+
+    // Internal master playlist for playlist-independent shuffling - contains each song's original playlist range and index
+    [YamlIgnore]
+    public List<Tuple<RadioRange, int, string>> AllSongs { get; set; } = new();
 
     private Config Config => MainPlugin.Configs;
 
@@ -104,10 +101,6 @@ public class Boombox : CustomItem
 
     [Description("The playlists of songs for each RadioRange setting.")]
     public Playlists Playlists { get; set; } = new();
-
-    // string is the song name, int is the index within its playlist
-    [YamlIgnore]
-    public List<Tuple<RadioRange, int, string>> AllSongs { get; set; } = new();
 
     protected override void SubscribeEvents()
     {
