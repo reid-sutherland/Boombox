@@ -4,14 +4,17 @@ This plugin offers a Radio-based CustomItem (The JBL Speaker a.k.a. "Boombox") t
 
 ## In-game usage
 
-**IMPORTANT:** During a game, go to Settings -> Server-Specific and bind the Boombox keys to the suggested keys.
+**IMPORTANT:** Be sure to bind the server-specific Boombox keys to use it properly.
 ![Server-specific settings](./keybind-settings.png)
 
 The Boombox appears to be a larger-than-usual guard radio. By default it spawns in the SCP-914 room, but this can be changed via config. 
-Use the Boombox like you would any normal radio. Turning it ON should begin to play the first song in the first playlist. Turning it OFF will pause the playback. 
-Change the radio frequency/range to change playlists, the config has a different playlist option for each range. 
-Using the server-specific settings mentioned above, while holding a Boombox that is ON, press the Change Song key to cycle to the next song in the current playlist. 
-Finally, you can press the Shuffle Song key to switch to a random song in the entire set of playlists/songs.
+
+Uses:
+- Use the Boombox like you would any normal radio.
+- Turning it ON should begin to play the first song in the first playlist. Turning it OFF will pause the playback. 
+- Change the radio frequency/range to change playlists, the config has a different playlist option for each range. 
+- Press the Change Song key to cycle to the next song in the current playlist. 
+- Press the Shuffle Song key to switch to a random song in the entire set of playlists/songs.
 
 ## Installation / Depedencies
 
