@@ -38,10 +38,6 @@ public class MainPlugin : Plugin<Config>
 
     public static string AudioPath => Path.Combine(Paths.Exiled, "Audio", "Boombox");
 
-    public SSKeybindSetting ChangeSongKeybind { get; private set; } = new SSKeybindSetting(null, $"BOOMBOX - Change Song - {KeyCode.F}", KeyCode.F, preventInteractionOnGui: true, allowSpectatorTrigger: false);
-
-    public SSKeybindSetting ShuffleSongKeybind { get; private set; } = new SSKeybindSetting(null, $"BOOMBOX - Shuffle Song - {KeyCode.G}", KeyCode.G, preventInteractionOnGui: true, allowSpectatorTrigger: false);
-
     public override void OnEnabled()
     {
         Singleton = this;
@@ -80,8 +76,8 @@ public class MainPlugin : Plugin<Config>
         Log.Info($"Finished loading audio clips");
 
         // Register events
+        ServerSettings.RegisterSettings();
         ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;
-        ServerEvents.RoundStarted += OnRoundStarted;
 
         base.OnEnabled();
     }
@@ -89,8 +85,9 @@ public class MainPlugin : Plugin<Config>
     public override void OnDisabled()
     {
         base.OnDisabled();
+
+        ServerSettings.UnregisterSettings();
         ServerSpecificSettingsSync.ServerOnSettingValueReceived -= OnSSInput;
-        ServerEvents.RoundStarted -= OnRoundStarted;
 
         Log.Debug("Un-registering custom items...");
         try
@@ -106,28 +103,18 @@ public class MainPlugin : Plugin<Config>
         Singleton = null;
     }
 
-    public void OnRoundStarted()
-    {
-        // Set up server-specific settings for the change-song key
-        ServerSpecificSettingsSync.DefinedSettings = ServerSpecificSettingsSync.DefinedSettings
-            .Append(ChangeSongKeybind)
-            .Append(ShuffleSongKeybind)
-            .ToArray();
-        ServerSpecificSettingsSync.SendToAll();
-        Log.Debug($"Added SSKeybindSettings to server: ['{ChangeSongKeybind.Label}', '{ShuffleSongKeybind.Label}']");
-    }
-
     public void OnSSInput(ReferenceHub sender, ServerSpecificSettingBase setting)
     {
         if (setting.OriginalDefinition is SSKeybindSetting ssKeybind && (setting as SSKeybindSetting).SyncIsPressed)
         {
-            if (ssKeybind.SettingId == ChangeSongKeybind.SettingId || ssKeybind.SettingId == ShuffleSongKeybind.SettingId)
+            if (ssKeybind.SettingId == ServerSettings.ChangeSongKeybind.Base.SettingId
+                || ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId)
             {
                 Player player = Player.Get(sender);
                 if (player.CurrentItem is not null && player.CurrentItem.Serial == (ushort)Boombox.BoomboxSerial)
                 {
-                    bool shuffle = ssKeybind.SettingId == ShuffleSongKeybind.SettingId;
-                    string keyType = ssKeybind.SettingId == ShuffleSongKeybind.SettingId ? "ShuffleSong" : "ChangeSong";
+                    bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;
+                    string keyType = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
                     Log.Debug($"Player {player.Nickname} pressed the {keyType} key while holding the boombox");
                     Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle);
                 }
