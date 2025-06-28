@@ -1,4 +1,5 @@
-global using Log = CommonUtils.Core.Logger;
+// TODO: Switch back to Core logger once the debug bug is fixed -- then make sure Logger.PrintDebug is back in
+//global using Log = CommonUtils.Core.Logger;
 
 using CommonUtils.Core;
 using Exiled.API.Enums;
@@ -6,11 +7,8 @@ using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
 using System;
 using System.IO;
-using System.Linq;
-using UnityEngine;
 using UserSettings.ServerSpecific;
 using Random = System.Random;
-using ServerEvents = Exiled.Events.Handlers.Server;
 
 namespace Boombox;
 
@@ -42,7 +40,6 @@ public class MainPlugin : Plugin<Config>
     {
         Singleton = this;
         Random = new();
-        Log.PrintDebug = Configs.Debug;
         AudioHelper.AudioDebug = Configs.AudioDebug;
 
         // Validate config i guess
