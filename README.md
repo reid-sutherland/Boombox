@@ -1,98 +1,69 @@
+# Boombox
 
-# EXILED Example Plugin
+This plugin offers a Radio-based CustomItem (The JBL Speaker a.k.a. "Boombox") that plays music or other audio for players within proximity to enjoy.
 
+## In-game usage
 
-## Note about `git`
+**IMPORTANT:** During a game, go to Settings -> Server-Specific and bind the Boombox keys to the suggested keys.
+![Server-specific settings](./keybind-settings.png)
 
-Do not clone this repo, it should not change and should only server as an example.
+The Boombox appears to be a larger-than-usual guard radio. By default it spawns in the SCP-914 room, but this can be changed via config. 
+Use the Boombox like you would any normal radio. Turning it ON should begin to play the first song in the first playlist. Turning it OFF will pause the playback. 
+Change the radio frequency/range to change playlists, the config has a different playlist option for each range. 
+Using the server-specific settings mentioned above, while holding a Boombox that is ON, press the Change Song key to cycle to the next song in the current playlist. 
+Finally, you can press the Shuffle Song key to switch to a random song in the entire set of playlists/songs.
 
-Instead, download the source code .zip and extract to a folder in `C:\\Users\\<user>\\source\\repos`.
+## Installation / Depedencies
 
-Then once you've made it your own, use git commands or SourceTree to initialize it as a new repository and upload it to GitHub.
+Dependencies:
+- [EXILED](https://github.com/ExMod-Team/EXILED)
+- [AudioPlayerApi](https://github.com/Killers0992/AudioPlayerApi)
+- [CommonUtils.Core](https://github.com/mjacobfahr/Common-Utils)
 
+This plugin uses Exiled so .dlls must be installed in the normal locations. Unless your server uses non-standard paths, assume that `%EXILED%` refers to the path where Exiled is normally installed: `C:\Users\%UserName%\AppData\Roaming\EXILED`.
+1. Download the files from the latest release
+1. Place `Boombox.dll` in `%EXILED%\Plugins\`
+1. Unzip `dependencies.zip` and place all .dlls in `%EXILED%\Plugins\dependencies`
 
+## Configuration
 
-## First time setup
+The `.yml` config file will be generated in the standard location if it does not exist yet: `%EXILED%\Configs\Plugins\Boombox\<server-port>.yml`.
 
-### Create a server for testing
+Most of the config properties are fairly self-explanatory and have descriptions. The easter egg is an exception, I would not recommend it by default but if you're curiuos you'll just have to try it. :)
 
-Follow this guide: https://steamcommunity.com/sharedfiles/filedetails/?id=1940790742
+However, the Boombox really does not do very much unless you add some audio files to the config and the audio-file location.
 
-Notes:
-- For the server location, you can just create a folder in your desktop for easy access.
-- You don't have to do port forwarding if you're just testing by yourself.
-  - Just use localhost (127.0.0.1) for direct connect to local server.
-- You don't have to get your server verified or do any of the pastebin stuff if you don't care about it appearing in the game's server list.
+### Adding audio files
 
-### Set up environment variable for EXILED_REFERENCES
+This plugin uses AudioPlayerApi for playing music, so the standard requirements for that library apply here as well. Specific requirements:
+1. Format: `.ogg`
+1. Channels: 1 (Mono)
+1. Frequency: 48kHz (48,000 Hz)
+See [AudioPlayerApi](https://github.com/Killers0992/AudioPlayerApi) for extra details and a recommended converter.
 
-EXILED and Exiled Plugins need to reference the .dlls used by the SCP Server. 
-When you set up a server in the previous section, all of these .dlls are installed automatically, we just need to be able to reference them from the `.csproj` file.
+Place your .ogg files in this directory: `%EXILED%\Audio\Boombox`. You may have to create the directory first. I am planning on making the path configurable soon as well.
 
-To do this, simply create a User Environment Variable for your User with the following values:
-- Name: `EXILED_REFRENCES`
-- Value: `<path-to-SCPServer-folder>\SCPSL_Data\Managed`
+Then, in the config, just reference them by their filename. For example:
+```yml
+boombox:
+  # other boombox fields...
 
-Double check that that folder exists and contains a bunch of Unity/CSharp .dlls.
+  playlists:
+    Short:
+      name: 'Playlist #1'
+      songs:
+      - 'example_song.ogg'
+      - 'example_song_2.ogg'
+    # other playlists...
+```
 
-#### How to set a Windows environment variable for noobs
+## Other notes
 
-- Search `environment variable` in Windows.
-- Click `Edit the System Environment Variables`.
-- Click the `Environment Variables...` button.
-- Under `User variables for <user>`, click `New...`.
-- Use the Name and Value listed above. You can use `Browse Directory...` to find the directory manually if you don't want to type the full path.
-- Click `Apply` or `OK` until all the windows are gone.
+#### Limitations and issues
 
-### Get a publicized Assembly dll for CSharp
+1. Standard limitations of playing audio via AudioPlayerApi
+1. Currently there is a hard-coded limit of 1 Boombox instance. If you try to raise the `limit` in `spawn_properties`, the plugin will throw an exception before it is enabled. I have never tested with multiple but I plan to add that in the future.
 
-Not all plugins will need this, but many (such as Common Utilities) will.
+#### Contributing
 
-If your project requires `Assembly-CSharp-Publicized.dll`, follow these steps:
-- Go to this github page: https://github.com/Raul125/APublicizer/releases/tag/1.0.0
-- Download `Release.rar`.
-- Use 7-zip (or WinRAR LMAO) to extract it.
-- Open a Command Prompt and navigate to the extracted folder.
-- Run this command: `APublicizer.exe <SCPServer_location>\SCPSL_Data\Managed\Assembly-CSharp.dll`
-- This will publicize the `Assembly-CSharp.dll` and save it to the same .dll folder with the name `Assembly-CSharp-Publicized.dll`.
-- You can delete the `APublicizer` folder and contents now, you will likely never need it again :)
-
-
-
-## Live Debugging
-
-### Setup
-
-Make a copy of your server in case you mess something up.
-
-- Check if you Visual Studio / IDE as the extension for Unity Dev. If not, install it.
-- Download the Unity 64-bit, version: 2021.3.17f1.
-  - Unpack the executable using Winrar or 7zip.
-  - `[ExtractedFolder]\Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\win64_development_mono\`
-  - Take `UnityPlayer.dll` and replace the one found at the root of the server.
-  - Take `WindowsPlayer.exe` place it at the root of server, delete `SCPSL.exe`, rename `WindowsPlayer.exe` to `SCPSL.exe`.
-  - You can delete UnitySetup64-2021.3.17f1.exe and the extracted folder.
-- Go to `[Server root]\SCPSL_Data\boot.config`. Edit and add the following:
-  - ```
-    wait-for-managed-debugger=1
-    player-connection-debug=1
-    ```
-
-### Debug
-
-- Place break point in your code. 
-- Build and place the dll in server ... 
-- Start the server... A windows will open which will suggest you attach your IDE. Go to or IDE and attached it.
-- For Visual Studio (min 2019):
-  - Go to Debugging > Attach to Unity > Select Project call "Debug" > click Ok.
-  - Go to the windows open by the server and click Ok.
-  - Disable the auto crash restart: `HBCTRL disable`
-- When a break point is triggered, you can inspect the value of instant.
-
-### Disable Debugging
-
-- Go to `[Server root]\SCPSL_Data\boot.config`. Modify the lines from before to the following:
-  - ```
-    wait-for-managed-debugger=0
-    player-connection-debug=0
-    ```
+Send me a DM on Discord if you're interested: `@reidiculous69`
