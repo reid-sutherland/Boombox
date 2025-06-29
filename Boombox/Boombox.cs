@@ -1,5 +1,4 @@
-﻿using CommonUtils.Core;
-using Exiled.API.Enums;
+﻿using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
@@ -628,7 +627,7 @@ public class Boombox : CustomItem
     {
         if (radio is not null)
         {
-            Log.Debug($"** setting boombox settings on Radio: {radio.Serial}");
+            //Log.Debug($"** setting boombox settings on Radio: {radio.Serial}");
             radio.SetRangeSettings(RadioRange.Short, boomboxSettings);
             radio.SetRangeSettings(RadioRange.Medium, boomboxSettings);
             radio.SetRangeSettings(RadioRange.Long, boomboxSettings);
@@ -637,7 +636,7 @@ public class Boombox : CustomItem
         }
         else if (radioPickup is not null)
         {
-            Log.Debug($"** setting boombox settings on RadioPickup: {radioPickup.Serial}");
+            //Log.Debug($"** setting boombox settings on RadioPickup: {radioPickup.Serial}");
             radioPickup.BatteryLevel = 100;
         }
     }

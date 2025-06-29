@@ -1,7 +1,7 @@
-// TODO: Switch back to Core logger once the debug bug is fixed -- then make sure Logger.PrintDebug is back in
+// TODO: Fix issues with Core and then re-add this
 //global using Log = CommonUtils.Core.Logger;
 
-using CommonUtils.Core;
+//using CommonUtils.Core;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
@@ -40,7 +40,10 @@ public class MainPlugin : Plugin<Config>
     {
         Singleton = this;
         Random = new();
-        AudioHelper.AudioDebug = Configs.AudioDebug;
+        //if (Configs.Debug)
+        //{
+        //    Log.EnableDebug();
+        //}
 
         // Validate config i guess
         Configs.Validate();
