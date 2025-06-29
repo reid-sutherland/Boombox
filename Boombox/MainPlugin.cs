@@ -6,6 +6,7 @@ using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UserSettings.ServerSpecific;
 using Random = System.Random;
@@ -66,13 +67,25 @@ public class MainPlugin : Plugin<Config>
         }
 
         // Load audio files
-        // TODO: If any files don't load, need to remove them from the playlists
         // TODO: Organize files by playlist directory
         Log.Info($"Loading audio clips from directory: {AudioPath}");
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Short].Songs);
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Medium].Songs);
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Long].Songs);
-        AudioHelper.LoadAudioClips(AudioPath, Boombox.Playlists[RadioRange.Ultra].Songs);
+        bool allLoaded = true;
+        foreach (Playlist playlist in Boombox.Playlists.Values)
+        {
+            List<string> failedClips = AudioHelper.LoadAudioClips(AudioPath, playlist.Songs);
+            if (failedClips.Count > 0)
+            {
+                allLoaded = false;
+                foreach (string fail in failedClips)
+                {
+                    playlist.Songs.Remove(fail);
+                }
+            }
+        }
+        if (!allLoaded)
+        {
+            Log.Warn($"Removed all clips that failed to load from playlists");
+        }
         Log.Info($"Finished loading audio clips");
 
         // Register events
