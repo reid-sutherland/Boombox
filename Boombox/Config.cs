@@ -18,6 +18,9 @@ public sealed class Config : IConfig
     [Description("Whether AudioAPI routines will write logs to debug.")]
     public bool AudioDebug { get; set; } = false;
 
+    [Description("Path to the directory containing .ogg audio files. If left empty or invalid, will default to %APPDATA%/Roaming/EXILED/Audio/Boombox")]
+    public string AudioPath { get; set; } = "";
+
     [Description("Whether hints should be shown with the song title, playlist title, etc.")]
     public bool ShowHints { get; set; } = true;
 
@@ -49,6 +52,36 @@ public sealed class Config : IConfig
     // TODO: Return a Result class and have OnEnabled() throw instead if any fatal errors
     public void Validate()
     {
+        // Check audio path
+        string defaultPath = Path.Combine(Paths.Exiled, "Audio", "Boombox");
+        if (string.IsNullOrEmpty(AudioPath))
+        {
+            AudioPath = defaultPath;
+        }
+        else if (!Directory.Exists(AudioPath))
+        {
+            Log.Warn($"AudioPath does not exist: '{AudioPath}' - using default path: '{defaultPath}'");
+            AudioPath = defaultPath;
+        }
+        if (!Directory.Exists(AudioPath))
+        {
+            Log.Error($"No valid AudioPath provided and the default AudioPath does not exist: {AudioPath}");
+        }
+
+        // Check the count of each range's playlist
+        // - if any of these throw, then the plugin will throw anyways so might as well catch it here
+        // - the rest of the plugin assumes that each range has a non-null Playlist object (probably bad design)
+        int total = 0;
+        total += Boombox.Playlists[RadioRange.Short].Length;
+        total += Boombox.Playlists[RadioRange.Medium].Length;
+        total += Boombox.Playlists[RadioRange.Long].Length;
+        total += Boombox.Playlists[RadioRange.Ultra].Length;
+        if (total == 0)
+        {
+            Log.Warn($"Config has no songs in any playlists, so the boombox will not function properly");
+        }
+
+        // Check Boombox properties
         if (Boombox.SpawnProperties.Limit > 1)
         {
             throw new Exception("Boombox has a maximum item limit of 1.");
@@ -74,19 +107,6 @@ public sealed class Config : IConfig
             Log.Warn($"Config had invalid value for MaxDistance: {Boombox.MaxDistance} - defaulting to {Boombox.MaxDistance}");
         }
 
-        // Check the count of each range's playlist
-        // - if any of these throw, then the plugin will throw anyways so might as well catch it here
-        // - the rest of the plugin assumes that each range has a non-null Playlist object (probably bad design)
-        int total = 0;
-        total += Boombox.Playlists[RadioRange.Short].Length;
-        total += Boombox.Playlists[RadioRange.Medium].Length;
-        total += Boombox.Playlists[RadioRange.Long].Length;
-        total += Boombox.Playlists[RadioRange.Ultra].Length;
-        if (total == 0)
-        {
-            Log.Warn($"Config has no songs in any playlists, so the boombox will not function properly");
-        }
-
         // Check easter egg
         if (EasterEggEnabled)
         {
@@ -96,7 +116,7 @@ public sealed class Config : IConfig
                 EasterEggEnabled = false;
                 Log.Warn($"Config had EasterEggEnabled but EasterEggSong is invalid: {EasterEggSong}");
             }
-            else if (!File.Exists(Path.Combine(MainPlugin.AudioPath, EasterEggSong + ".ogg")))
+            else if (!File.Exists(Path.Combine(AudioPath, EasterEggSong + ".ogg")))
             {
                 EasterEggEnabled = false;
                 Log.Warn($"Config had EasterEggEnabled but EasterEggSong does not exist: {EasterEggSong}");
@@ -111,6 +131,10 @@ public sealed class Config : IConfig
                 EasterEggEnabled = false;
                 Log.Warn($"Config had EasterEggEnabled but EasterEggDelay is invalid: {EasterEggDelay}");
             }
+        }
+        if (EasterEggEnabled)
+        {
+            Log.Debug($"Easter egg is enabled :)");
         }
     }
 }

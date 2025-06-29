@@ -35,8 +35,6 @@ public class MainPlugin : Plugin<Config>
 
     public static Random Random { get; private set; }
 
-    public static string AudioPath => Path.Combine(Paths.Exiled, "Audio", "Boombox");
-
     public override void OnEnabled()
     {
         Singleton = this;
@@ -48,10 +46,6 @@ public class MainPlugin : Plugin<Config>
 
         // Validate config i guess
         Configs.Validate();
-        if (Configs.EasterEggEnabled)
-        {
-            Log.Debug($"Easter egg is enabled :)");
-        }
 
         // Register custom items here
         Log.Debug("Registering custom items...");
@@ -68,11 +62,11 @@ public class MainPlugin : Plugin<Config>
 
         // Load audio files
         // TODO: Organize files by playlist directory
-        Log.Info($"Loading audio clips from directory: {AudioPath}");
+        Log.Info($"Loading audio clips from directory: {Configs.AudioPath}");
         bool allLoaded = true;
         foreach (Playlist playlist in Boombox.Playlists.Values)
         {
-            List<string> failedClips = AudioHelper.LoadAudioClips(AudioPath, playlist.Songs);
+            List<string> failedClips = AudioHelper.LoadAudioClips(Configs.AudioPath, playlist.Songs);
             if (failedClips.Count > 0)
             {
                 allLoaded = false;
