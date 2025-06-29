@@ -43,7 +43,7 @@ public class Boombox : CustomItem
 
     // NOTE: For multiple boomboxes, needs to be a list (or a dict/set for no duplicates)
     [YamlIgnore]
-    public int BoomboxSerial { get; set; } = -1;
+    public int BoomboxSerial { get; private set; } = -1;
 
     [YamlIgnore]
     public string AudioPlayerName => GetType().Name;

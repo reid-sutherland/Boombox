@@ -1,5 +1,7 @@
 ﻿using Exiled.API.Features.Core.UserSettings;
+using System.Collections.Generic;
 using UnityEngine;
+using UserSettings.ServerSpecific;
 
 namespace Boombox;
 
@@ -9,6 +11,8 @@ public static class ServerSettings
 
     public static KeybindSetting ChangeSongKeybind { get; private set; }
     public static KeybindSetting ShuffleSongKeybind { get; private set; }
+
+    public static List<int> KeybindSettingIds { get; private set; } = new();
 
     //public static bool ShouldShowX(Player player) => !(player.SessionVariables.TryGetValue("X", out var value) && value is bool enabled && !enabled);
 
@@ -30,6 +34,11 @@ public static class ServerSettings
             allowSpectatorTrigger: false,
             header: BoomboxHeader
         );
+        KeybindSettingIds = new()
+        {
+            ChangeSongKeybind.Base.SettingId,
+            ShuffleSongKeybind.Base.SettingId,
+        };
 
         SettingBase.Register(settings: new[]
         {
@@ -44,5 +53,14 @@ public static class ServerSettings
             ChangeSongKeybind,
             ShuffleSongKeybind,
         });
+    }
+
+    public static bool CheckSSInput(ServerSpecificSettingBase setting)
+    {
+        if (setting.OriginalDefinition is SSKeybindSetting ssKeybind)
+        {
+            return KeybindSettingIds.Contains(ssKeybind.SettingId);
+        }
+        return false;
     }
 }
