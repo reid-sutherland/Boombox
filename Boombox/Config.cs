@@ -21,6 +21,9 @@ public sealed class Config : IConfig
     [Description("Path to the directory containing .ogg audio files. If left empty or invalid, will default to %APPDATA%/Roaming/EXILED/Audio/Boombox")]
     public string AudioPath { get; set; } = "";
 
+    [Description("Enable this if you want to see extra debug logs for server-specific keybinds.")]
+    public bool KeybindDebug { get; set; } = false;
+
     [Description("Configure hints here")]
     public HintManager HintManager { get; set; } = new();
 

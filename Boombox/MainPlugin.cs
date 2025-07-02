@@ -7,6 +7,7 @@ using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UserSettings.ServerSpecific;
 using Random = System.Random;
 
@@ -116,30 +117,41 @@ public class MainPlugin : Plugin<Config>
     public void OnSSInput(ReferenceHub sender, ServerSpecificSettingBase setting)
     {
         Player player = Player.Get(sender);
-        Log.Debug($"Player {(player is not null ? player.Nickname : "<NULL>")} triggered SS input: ({setting.SettingId}) {setting.DebugValue}");
+
+        DebugKeybind($"Player {(player is not null ? player.Nickname : "<NULL>")} triggered SS input: ({setting.SettingId}) {setting.DebugValue}");
         if ((setting as SSKeybindSetting).SyncIsPressed && setting.OriginalDefinition is SSKeybindSetting ssKeybind)
         {
-            //Log.Debug($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
+            DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
             if (ServerSettings.CheckSSInput(setting))
             {
                 if (player.CurrentItem is not null && CustomItem.TryGet("JBL Speaker", out CustomItem boombox))
                 {
-                    //Log.Debug($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, tracked-serial={boombox.TrackedSerials.FirstOrDefault()}, BoomboxSerial={Boombox.BoomboxSerial}/{(ushort)Boombox.BoomboxSerial}");
+                    DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, tracked-serial={boombox.TrackedSerials.FirstOrDefault()}, BoomboxSerial={Boombox.BoomboxSerial}/{(ushort)Boombox.BoomboxSerial}");
                     if (boombox.Check(player.CurrentItem))
                     {
-                        //Log.Debug($"-- player's item appears to be a boombox: {boombox.Name}");
-
                         bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;
                         string keyType = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
-                        Log.Debug($"-- player {player.Nickname} pressed the {keyType} key while holding the boombox");
+                        DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding the boombox: {boombox.Name}");
                         Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle);
+                    }
+                    else
+                    {
+                        DebugKeybind($"-- player was NOT holding a boombox");
                     }
                 }
                 else
                 {
-                    //Log.Debug($"-- did NOT find a boombox");
+                    DebugKeybind($"-- did NOT find a boombox");
                 }
             }
+        }
+    }
+
+    public void DebugKeybind(string message)
+    {
+        if (Configs.KeybindDebug)
+        {
+            Log.Debug(message);
         }
     }
 }
