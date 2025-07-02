@@ -54,6 +54,8 @@ public class Boombox : CustomItem
 
     private Config Config => MainPlugin.Configs;
 
+    private HintManager HintManager => MainPlugin.Configs.HintManager;
+
     private AudioPlayer AudioPlayer { get; set; } = null;
 
     private AudioClipPlayback CurrentPlayback { get; set; } = null;
@@ -148,7 +150,7 @@ public class Boombox : CustomItem
     protected void OnRoundStarted()
     {
         // Send a broadcast to any player that doesn't have the SS setting set
-        if (Config.ShowKeybindHints)
+        if (HintManager.ShowSSWarningHints)
         {
             int keybindSettingId = ServerSettings.ChangeSongKeybind.Base.SettingId;
             foreach (Player player in Player.List)
@@ -400,11 +402,9 @@ public class Boombox : CustomItem
         {
             Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
 
-            if (Config.ShowHints && Playlists[ev.NewValue].Length > 0)
-            {
-                ev.Player.ShowHint($"Changed playlist to '{Playlists[ev.NewValue].Name}'", 1.0f);   // don't show a conflicting hint if the playlist is empty
-            }
-            ChangeSong(ev.Player, ev.NewValue, QueueType.Current, showHint: false);                 // disable change-song hint so it doesn't conflict with the change-playlist hint above
+            // don't show conflicting hints if the playlist is empty or when changing song here
+            ChangeSong(ev.Player, ev.NewValue, QueueType.Current, showHint: false);     // disable change-song hint so it doesn't conflict with the change-playlist hint above
+            HintManager.ShowChangePlaylist(ev.Player, Playlists[ev.NewValue]);
         }
     }
 
@@ -419,20 +419,18 @@ public class Boombox : CustomItem
 
         if (AudioPlayer is not null)
         {
-            if (CurrentPlayback is not null)
+            if (CurrentPlayback is null)
             {
-                if (ev.NewState)
-                {
-                    CurrentPlayback.IsPaused = false;
-                }
-                else
-                {
-                    CurrentPlayback.IsPaused = true;
-                }
+                ChangeSong(ev.Player, ev.Radio.Range, QueueType.Current);
             }
             else if (ev.NewState)
             {
-                ChangeSong(ev.Player, ev.Radio.Range, QueueType.Current);
+                // TODO: not a big deal but un-pausing doesn't show anything - calling ChangeSongHint here may show the wrong info if current playback is from shuffle
+                CurrentPlayback.IsPaused = false;
+            }
+            else
+            {
+                CurrentPlayback.IsPaused = true;
             }
         }
     }
@@ -467,16 +465,12 @@ public class Boombox : CustomItem
         }
     }
 
-    public void ChangeSong(Player player, RadioRange range, QueueType queueType, bool showHint = true, bool addAllSongs = true)
+    public void ChangeSong(Player player, RadioRange range, QueueType queueType, bool showHint = true)
     {
         Playlist playlist = Playlists[range];
         if (playlist.Length == 0)
         {
             Log.Debug($"No songs in the playlist for range: {range}");
-            if (Config.ShowHints)
-            {
-                player.ShowHint($"Playlist '{playlist.Name}' has no songs :(", 1.0f);
-            }
             return;
         }
 
@@ -494,22 +488,14 @@ public class Boombox : CustomItem
                 break;
         }
         PlaySong(Playlists[range].CurrentSong, player, showHint);
-
-        //if (addAllSongs)
-        //{
-        //    AddAllSongs(SongIndex);
-        //}
+        HintManager.ShowChangeSong(player, Playlists[range]);
     }
 
-    public void ShuffleSong(Player player, RadioRange oldRange, bool addAllSongs = false)
+    public void ShuffleSong(Player player, RadioRange oldRange)
     {
         if (AllSongs.Count == 0)
         {
             Log.Debug($"Can't shuffle: No songs in any playlists");
-            if (Config.ShowHints)
-            {
-                player.ShowHint($"Boombox has no songs to shuffle :(", 1.0f);
-            }
             return;
         }
 
@@ -536,12 +522,12 @@ public class Boombox : CustomItem
             }
         }
 
-        PlaySong(newSong, player);
+        PlaySong(Playlists[newRange].CurrentSong, player);
+        HintManager.ShowShuffleSong(player, Playlists[newRange]);
     }
 
-    private void PlaySong(string song, Player player = null, bool shuffle = false, bool showHint = true)
+    private void PlaySong(string song, Player player = null, bool shuffle = false, bool showHint = true, bool addAll = false)
     {
-        song = song.Replace(".ogg", "");
         if (AudioPlayer is null)
         {
             Log.Error($"Can't play song '{song}': AudioPlayer is null");
@@ -559,12 +545,7 @@ public class Boombox : CustomItem
         Log.Debug($"Added clip to boombox audio player: {CurrentPlayback.Clip}");
         if (player is not null)
         {
-            if (Config.ShowHints && showHint)
-            {
-                string action = shuffle ? "Shuffled" : "Changed";
-                player.ShowHint($"{action} song to '{song}'", 0.75f);
-            }
-
+            // TODO: think this might need a check for position 0
             // Easter egg
             if (Config.EasterEggEnabled)
             {
@@ -613,7 +594,7 @@ public class Boombox : CustomItem
         //Log.Debug($"Adding all songs from start index: {startIndex}");
         //for (int i = 0; i < songList.Count; i++)
         //{
-        //    string clip = songList[(i + startIndex) % songList.Count].Replace(".ogg", "");
+        //    string clip = songList[(i + startIndex) % songList.Count];
         //    AudioPlayer.AddClip(clip);
         //    AudioPlayer.
         //    Log.Debug($"-- {i}: {clip}");

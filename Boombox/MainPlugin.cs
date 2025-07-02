@@ -46,18 +46,9 @@ public class MainPlugin : Plugin<Config>
         // Validate config i guess
         Configs.Validate();
 
-        // Register custom items here
-        Log.Debug("Registering custom items...");
-        try
-        {
-            CustomItem.RegisterItems(overrideClass: Configs);
-            Log.Info("All custom items registered successfully");
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Some custom items failed to register");
-            Log.Debug(ex);
-        }
+        // Import any other boombox info that can't automatically be inferred from the config
+        Boombox.Name = string.IsNullOrEmpty(Configs.HintManager.BoomboxName) ? Boombox.Name : Configs.HintManager.BoomboxName;
+        Boombox.Description = string.IsNullOrEmpty(Configs.HintManager.BoomboxDescription) ? Boombox.Description : Configs.HintManager.BoomboxDescription;
 
         // Load audio files
         // TODO: Organize files by playlist directory
@@ -80,6 +71,19 @@ public class MainPlugin : Plugin<Config>
             Log.Warn($"Removed all clips that failed to load from playlists");
         }
         Log.Info($"Finished loading audio clips");
+
+        // Register custom items here
+        Log.Debug("Registering custom items...");
+        try
+        {
+            CustomItem.RegisterItems(overrideClass: Configs);
+            Log.Info("All custom items registered successfully");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Some custom items failed to register");
+            Log.Debug(ex);
+        }
 
         // Register events
         ServerSettings.RegisterSettings();

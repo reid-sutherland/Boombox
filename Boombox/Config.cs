@@ -21,11 +21,8 @@ public sealed class Config : IConfig
     [Description("Path to the directory containing .ogg audio files. If left empty or invalid, will default to %APPDATA%/Roaming/EXILED/Audio/Boombox")]
     public string AudioPath { get; set; } = "";
 
-    [Description("Whether hints should be shown with the song title, playlist title, etc.")]
-    public bool ShowHints { get; set; } = true;
-
-    [Description("Whether players should be given a hint-reminder to set the boombox controls via ServerSpecific Settings, only if they don't have an assigned keybind on round start.")]
-    public bool ShowKeybindHints { get; set; } = false;
+    [Description("Configure hints here")]
+    public HintManager HintManager { get; set; } = new();
 
     [Description("Configure the Boombox's properties here")]
     public Boombox Boombox { get; set; } = new();
@@ -82,6 +79,11 @@ public sealed class Config : IConfig
         }
 
         // Check Boombox properties
+        if (HintManager is null)
+        {
+            HintManager = new();
+            Log.Warn($"HintManager is null in config. Using default Hint settings.");
+        }
         if (Boombox.SpawnProperties.Limit > 1)
         {
             throw new Exception("Boombox has a maximum item limit of 1.");
