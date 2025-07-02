@@ -18,10 +18,9 @@ Uses:
 
 ## Installation / Depedencies
 
-Dependencies:
+Main dependencies:
 - [EXILED](https://github.com/ExMod-Team/EXILED)
-- [AudioPlayerApi](https://github.com/Killers0992/AudioPlayerApi)
-- [CommonUtils.Core](https://github.com/mjacobfahr/Common-Utils)
+- [AudioPlayerApi](https://github.com/Killers0992/AudioPlayerApi) (also requires NVorbis.dll)
 
 This plugin uses Exiled so .dlls must be installed in the normal locations. Unless your server uses non-standard paths, assume that `%EXILED%` refers to the path where Exiled is normally installed: `C:\Users\%UserName%\AppData\Roaming\EXILED`.
 1. Download the files from the latest release
