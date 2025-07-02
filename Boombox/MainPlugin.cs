@@ -56,7 +56,7 @@ public class MainPlugin : Plugin<Config>
         bool allLoaded = true;
         foreach (Playlist playlist in Boombox.Playlists.Values)
         {
-            List<string> failedClips = AudioHelper.LoadAudioClips(Configs.AudioPath, playlist.Songs);
+            List<string> failedClips = AudioHelper.LoadAudioClips(Configs.AudioPath, playlist.Songs, log: Configs.AudioDebug);
             if (failedClips.Count > 0)
             {
                 allLoaded = false;

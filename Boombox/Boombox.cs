@@ -223,7 +223,7 @@ public class Boombox : CustomItem
             // Create the audio player
             try
             {
-                AudioPlayer = AudioHelper.GetAudioPlayer(AudioPlayerName);
+                AudioPlayer = AudioHelper.GetAudioPlayer(AudioPlayerName, speakerVolume: SpeakerVolume, speakerCount: SpeakerCount, minDistance: MinDistance, maxDistance: MaxDistance, log: Config.AudioDebug);
                 if (AudioPlayer is null)
                 {
                     Log.Error($"Tried to create audio player for new boombox spawn, but it failed");
@@ -251,23 +251,6 @@ public class Boombox : CustomItem
 
     protected void OnRestartingRound()
     {
-        // TODO: Test this? this should only be necessary if the "Restart" button is clicked, normally it does not seem to be necessary
-        Log.Debug($"OnRestartingRound...");
-        Pickup boomboxPickup = Pickup.Get((ushort)BoomboxSerial);
-        if (boomboxPickup is not null)
-        {
-            Log.Debug($"-- found pickup: serial={BoomboxSerial}");
-            boomboxPickup.Destroy();
-            Log.Debug($"-- destroyed Boombox pickup");
-        }
-        Item boomboxItem = Item.Get((ushort)BoomboxSerial);
-        if (boomboxItem is not null)
-        {
-            Log.Debug($"-- found item: serial={BoomboxSerial}");
-            boomboxItem.Destroy();
-            Log.Debug($"-- destroyed Boombox item");
-        }
-
         DiedWithPlayerId = "";
     }
 
@@ -290,7 +273,7 @@ public class Boombox : CustomItem
         Log.Debug($"{ev.Player.Nickname} is picking up the boombox: serial={ev.Pickup.Serial}");
         if (AudioPlayer is not null)
         {
-            AudioHelper.AttachAudioPlayer(AudioPlayer, ev.Player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
+            AudioHelper.AttachAudioPlayer(AudioPlayer, ev.Player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
         }
     }
 
@@ -326,7 +309,7 @@ public class Boombox : CustomItem
         SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
         if (AudioPlayer is not null)
         {
-            AudioHelper.AttachAudioPlayer(AudioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
+            AudioHelper.AttachAudioPlayer(AudioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
         }
     }
 
@@ -354,7 +337,7 @@ public class Boombox : CustomItem
                 if (boomboxPickup is not null)
                 {
                     Log.Debug($"-- pickup pos: {boomboxPickup.Position}");
-                    AudioHelper.AttachAudioPlayer(AudioPlayer, boomboxPickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance);
+                    AudioHelper.AttachAudioPlayer(AudioPlayer, boomboxPickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
                 }
                 else
                 {

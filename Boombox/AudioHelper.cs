@@ -8,9 +8,9 @@ namespace Boombox;
 
 public static class AudioHelper
 {
-    public static bool LoadAudioClip(string audioDir, string audioFile)
+    public static bool LoadAudioClip(string audioDir, string audioFile, bool log = false)
     {
-        if (MainPlugin.Configs.AudioDebug)
+        if (log)
         {
             Log.Debug($"-- loading audio clip: {audioFile}");
         }
@@ -20,12 +20,12 @@ public static class AudioHelper
         return AudioClipStorage.LoadClip(filepath, name);
     }
 
-    public static List<string> LoadAudioClips(string audioDir, List<string> audioFiles)
+    public static List<string> LoadAudioClips(string audioDir, List<string> audioFiles, bool log = false)
     {
         List<string> failedClips = new();
         foreach (string file in audioFiles)
         {
-            if (!LoadAudioClip(audioDir, file))
+            if (!LoadAudioClip(audioDir, file, log))
             {
                 failedClips.Add(file);
             }
@@ -33,18 +33,18 @@ public static class AudioHelper
         return failedClips;
     }
 
-    public static AudioPlayer GetAudioPlayer(string audioPlayerName, GameObject parent = null, float speakerVolume = 1.0f, int speakerCount = 1, float minDistance = 5.0f, float maxDistance = 5.0f)
+    public static AudioPlayer GetAudioPlayer(string audioPlayerName, GameObject parent = null, float speakerVolume = 1.0f, int speakerCount = 1, float minDistance = 5.0f, float maxDistance = 5.0f, bool log = false)
     {
         return AudioPlayer.CreateOrGet(audioPlayerName, onIntialCreation: (audioPlayer) =>
         {
             if (parent is not null)
             {
-                AttachAudioPlayer(audioPlayer, parent, speakerVolume, speakerCount, minDistance, maxDistance);
+                AttachAudioPlayer(audioPlayer, parent, speakerVolume, speakerCount, minDistance, maxDistance, log);
             }
         });
     }
 
-    public static Speaker AttachAudioPlayer(AudioPlayer audioPlayer, GameObject parent, float speakerVolume = 1.0f, int speakerCount = 1, float minDistance = 5.0f, float maxDistance = 5.0f)
+    public static Speaker AttachAudioPlayer(AudioPlayer audioPlayer, GameObject parent, float speakerVolume = 1.0f, int speakerCount = 1, float minDistance = 5.0f, float maxDistance = 5.0f, bool log = false)
     {
         try
         {
@@ -74,7 +74,7 @@ public static class AudioHelper
                 }
             }
 
-            if (MainPlugin.Configs.AudioDebug)
+            if (log)
             {
                 Log.Debug($"Setting audio player speaker to position: {audioPlayer.transform.position}");
             }
@@ -82,8 +82,8 @@ public static class AudioHelper
         }
         catch (Exception ex)
         {
-            Log.Error($"Exception during SetAudioPlayerParent(): {ex.Message}");
-            if (MainPlugin.Configs.AudioDebug)
+            Log.Error($"Exception during {nameof(AttachAudioPlayer)}: {ex.Message}");
+            if (log)
             {
                 Log.Debug($"-- stacktrace: {ex.StackTrace}");
             }
