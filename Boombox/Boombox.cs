@@ -174,12 +174,12 @@ public class Boombox : CustomItem
             audioAttacher = item.Owner.GameObject;
             if (item.Owner == Server.Host)
             {
-                Log.Warn($"Initialize: no item owner was found for {Identifier(serial)}: got ServerHost player");
+                Log.Warn($"Initialize: No item owner was found for {Identifier(serial)}: got ServerHost player");
             }
         }
         else
         {
-            Log.Error($"Initialize: no pickup or item with matching serial was found for {Identifier(serial)}");
+            Log.Error($"Initialize: No pickup or item with matching serial was found for {Identifier(serial)}");
             return;
         }
 
@@ -308,7 +308,7 @@ public class Boombox : CustomItem
     protected override void OnAcquired(Player player, Item item, bool displayMessage)
     {
         base.OnAcquired(player, item, displayMessage);
-        Log.Debug($"{player.Nickname} acquired a {Identifier(item.Serial)}");
+        Log.Debug($"{player.Nickname} acquired {Identifier(item.Serial)}");
 
         var audioPlayer = GetAudioPlayer(item.Serial);
         if (audioPlayer is not null)
@@ -354,6 +354,10 @@ public class Boombox : CustomItem
         {
             AudioHelper.AttachAudioPlayer(audioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
         }
+        else
+        {
+            Log.Error($"-- audio player was null for dropped item");
+        }
     }
 
     protected override void OnOwnerDying(OwnerDyingEventArgs ev)
@@ -361,7 +365,7 @@ public class Boombox : CustomItem
         base.OnOwnerDying(ev);
         if (ev.Item is not null)
         {
-            Log.Debug($"{ev.Player.Nickname} is dying with the {Identifier(ev.Item.Serial)}");
+            Log.Debug($"{ev.Player.Nickname} is dying with {Identifier(ev.Item.Serial)}");
             DiedWithPlayerIds[ev.Item.Serial] = ev.Player.UserId;
         }
     }
@@ -376,8 +380,8 @@ public class Boombox : CustomItem
             {
                 ushort serial = it.Key;
                 toRemove = serial;
+                Log.Debug($"{ev.Player.Nickname} died with {Identifier(serial)}");
 
-                Log.Debug($"{ev.Player.Nickname} died with the {Identifier(serial)}");
                 Pickup boomboxPickup = Pickup.Get(serial);
                 if (boomboxPickup is not null)
                 {
@@ -389,7 +393,7 @@ public class Boombox : CustomItem
                     }
                     else
                     {
-                        Log.Error($"-- dropped-pickup {Identifier(serial)} did not have an audio player");
+                        Log.Error($"-- audio player was null for died-with item");
                     }
                 }
                 else
@@ -434,7 +438,7 @@ public class Boombox : CustomItem
         }
         if (ev.Radio.IsEnabled)
         {
-            Log.Debug($"{ev.Player.Nickname} changed the radio preset from {ev.OldValue} to {ev.NewValue}");
+            Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range]}");
 
             // don't show conflicting hints if the playlist is empty or when changing song here
             ChangeSong(ev.Player, ev.Radio.Serial, ev.NewValue, QueueType.Current, showHint: false);     // disable change-song hint so it doesn't conflict with the change-playlist hint above
@@ -449,7 +453,7 @@ public class Boombox : CustomItem
         {
             return;
         }
-        Log.Debug($"{ev.Player.Nickname} switched the {Identifier(ev.Radio.Serial)}: {(ev.NewState ? "ON" : "off")}");
+        Log.Debug($"{ev.Player.Nickname} switched their {Identifier(ev.Radio.Serial)}: {(ev.NewState ? "ON" : "OFF")}");
 
         var audioPlayer = GetAudioPlayer(ev.Radio.Serial);
         if (audioPlayer is not null)
@@ -468,6 +472,10 @@ public class Boombox : CustomItem
             {
                 currentPlayback.IsPaused = true;
             }
+        }
+        else
+        {
+            Log.Error($"-- audio player was null for toggled radio");
         }
     }
 
@@ -563,7 +571,7 @@ public class Boombox : CustomItem
         var audioPlayer = GetAudioPlayer(itemSerial);
         if (audioPlayer is null)
         {
-            Log.Error($"Can't play song '{song}': {Identifier(itemSerial)} audio player is null");
+            Log.Error($"Can't play song '{song}': {Identifier(itemSerial)} has a null audio player");
             return;
         }
 
@@ -576,7 +584,7 @@ public class Boombox : CustomItem
 
         playback = audioPlayer.AddClip(song);
         Playbacks[itemSerial] = playback;
-        Log.Debug($"Added clip to {Identifier(itemSerial)} audio player: {playback.Clip}");
+        Log.Debug($"Added clip '{playback.Clip}' to {Identifier(itemSerial)} audio player");
         if (player is not null)
         {
             // TODO: think this might need a check for position 0 in the playback

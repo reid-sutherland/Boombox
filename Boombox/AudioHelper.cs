@@ -54,7 +54,7 @@ public static class AudioHelper
             Speaker outSpeaker = null;
             for (int i = 0; i < speakerCount; i++)
             {
-                string speakerName = $"{audioPlayer.Name}-Main-{i}";
+                string speakerName = $"{audioPlayer.Name}-S{i}";
 
                 // This created speaker will be in 3D space.
                 Speaker speaker = audioPlayer.GetOrAddSpeaker(speakerName, isSpatial: true, minDistance: minDistance, maxDistance: maxDistance);
@@ -76,7 +76,7 @@ public static class AudioHelper
 
             if (log)
             {
-                Log.Debug($"Setting {audioPlayer.Name} speaker to position: {audioPlayer.transform.position}");
+                Log.Debug($"-- setting {audioPlayer.Name} speaker to parent at position: {audioPlayer.transform.parent.position}");
             }
             return outSpeaker;
         }
