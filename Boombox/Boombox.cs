@@ -8,6 +8,7 @@ using Exiled.API.Features.Spawn;
 using Exiled.CustomItems.API.EventArgs;
 using Exiled.CustomItems.API.Features;
 using Exiled.Events.EventArgs.Item;
+using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using MEC;
@@ -113,7 +114,8 @@ public class Boombox : CustomItem
         // Rounds
         Exiled.Events.Handlers.Server.RoundStarted += OnRoundStarted;
         Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnded;
-        Exiled.Events.Handlers.Server.RestartingRound += OnRestartingRound;
+        // Map
+        Exiled.Events.Handlers.Map.PickupAdded += OnPickupSpawned;
         // Pickups/drops
         Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
         Exiled.Events.Handlers.Player.DroppingItem += OnDroppingItem;
@@ -133,7 +135,8 @@ public class Boombox : CustomItem
         // Rounds
         Exiled.Events.Handlers.Server.RoundStarted -= OnRoundStarted;
         Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnded;
-        Exiled.Events.Handlers.Server.RestartingRound -= OnRestartingRound;
+        // Map
+        Exiled.Events.Handlers.Map.PickupAdded -= OnPickupSpawned;
         // Pickups/drops
         Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
         Exiled.Events.Handlers.Player.DroppingItem -= OnDroppingItem;
@@ -180,44 +183,37 @@ public class Boombox : CustomItem
             return;
         }
 
-        if (audioAttacher is not null) // NOTE: Only GetAudioPlayer() really cares if a gameobject was found, but still need to check 'if found'
-        {
-            // Initialize tracker objects
-            //Serials.Add(serial);
-            //AudioPlayers.Add(serial, null);
-            //Playbacks.Add(serial, null);
-            //DiedWithPlayerIds.Add(serial, "");
-            Serials.Add(serial);
-            AudioPlayers[serial] = null;
-            Playbacks[serial] = null;
-            DiedWithPlayerIds[serial] = "";
+        // Initialize tracker objects
+        Serials.Add(serial);
+        AudioPlayers[serial] = null;
+        Playbacks[serial] = null;
+        DiedWithPlayerIds[serial] = "";
 
-            // Create the audio player
-            try
+        // Create the audio player
+        try
+        {
+            var audioPlayer = AudioHelper.GetAudioPlayer(
+                GetAudioPlayerName(serial),
+                parent: audioAttacher,
+                speakerVolume: SpeakerVolume,
+                speakerCount: SpeakerCount,
+                minDistance: MinDistance,
+                maxDistance: MaxDistance,
+                log: Config.AudioDebug
+            );
+            if (audioPlayer is not null)
             {
-                var audioPlayer = AudioHelper.GetAudioPlayer(
-                    GetAudioPlayerName(serial),
-                    parent: audioAttacher,
-                    speakerVolume: SpeakerVolume,
-                    speakerCount: SpeakerCount,
-                    minDistance: MinDistance,
-                    maxDistance: MaxDistance,
-                    log: Config.AudioDebug
-                );
-                if (audioPlayer is not null)
-                {
-                    AudioPlayers[serial] = audioPlayer;
-                    Log.Debug($"Created audio player for spawned {Identifier(serial)}");
-                }
-                else
-                {
-                    Log.Error($"Failed to create audio player for spawned {Identifier(serial)}");
-                }
+                AudioPlayers[serial] = audioPlayer;
+                Log.Info($"Created audio player for initialized {Identifier(serial)} with name: {audioPlayer.Name}");
             }
-            catch (Exception ex)
+            else
             {
-                Log.Error($"Tried to create audio player for spawned {Identifier(serial)}. Exception: {ex.Message}");
+                Log.Error($"Failed to create audio player for {Identifier(serial)}");
             }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Tried to create audio player for {Identifier(serial)}. Exception: {ex.Message}");
         }
     }
 
@@ -250,15 +246,15 @@ public class Boombox : CustomItem
             }
         }
 
-        // "Initialize" the spawned pickups
-        Serials.Clear();
-        AudioPlayers.Clear();
-        Playbacks.Clear();
-        DiedWithPlayerIds.Clear();
+        // Check each tracked serial, if it wasn't initialized via OnPickupSpawned, initialize it here
         foreach (int ser in TrackedSerials)
         {
             ushort serial = (ushort)ser;
-            Initialize(serial);
+            if (!Serials.Contains(serial) || GetAudioPlayer(serial) == null)
+            {
+                Log.Debug($"On round start: AP tracker was null for serial {serial}, initializing");
+                Initialize(serial);
+            }
         }
 
         Log.Info($"Round started: spawned {Serials.Count} Boombox(es)");
@@ -277,10 +273,35 @@ public class Boombox : CustomItem
         DiedWithPlayerIds.Clear();
     }
 
-    protected void OnRestartingRound()
+    // This is called after the dropped/died methods os it's just here in case it needs initializing (e.g. spawned via commands)
+    protected void OnPickupSpawned(PickupAddedEventArgs ev)
     {
-        // TODO: Need to clear trackers if the pickup/item with tracker serial is ever removed?
-        // TODO: If spawned on the ground after round start, need to initialize them
+        if (!Check(ev.Pickup))
+        {
+            return;
+        }
+
+        if (GetAudioPlayer(ev.Pickup.Serial) is null)
+        {
+            Log.Debug($"New Pickup spawned for {Identifier(ev.Pickup.Serial)}");
+            Log.Debug($"-- no audio player, initializing");
+            Initialize(ev.Pickup.Serial);
+        }
+    }
+
+    // Prevents banned users from picking up the boombox
+    protected void OnPickingUpItem(PickingUpItemEventArgs ev)
+    {
+        if (!Check(ev.Pickup))
+        {
+            return;
+        }
+        if (Config.BannedPlayerIds.Contains(ev.Player.UserId))
+        {
+            ev.Player.ShowHint(Config.BannedMessage, 5.0f);
+            ev.IsAllowed = false;
+            return;
+        }
     }
 
     // Moves the audio player to the player
@@ -290,12 +311,6 @@ public class Boombox : CustomItem
         Log.Debug($"{player.Nickname} acquired a {Identifier(item.Serial)}");
 
         var audioPlayer = GetAudioPlayer(item.Serial);
-        if (audioPlayer is null)
-        {
-            // TODO: If it's null, we should probably create an audio player right? repeat elsewhere
-            Initialize(item.Serial);
-            audioPlayer = GetAudioPlayer(item.Serial);
-        }
         if (audioPlayer is not null)
         {
             var speaker = AudioHelper.AttachAudioPlayer(audioPlayer, player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
@@ -304,20 +319,16 @@ public class Boombox : CustomItem
                 Log.Error($"OnAcquired: Speaker is null");
             }
         }
-    }
-
-    // Prevents banned users from picking up the boombox
-    protected void OnPickingUpItem(PickingUpItemEventArgs ev)
-    {
-        if (Check(ev.Pickup))
+        else
         {
-            return;
+            Log.Debug($"-- no audio player, initializing");
+            Initialize(item.Serial);
         }
-        if (Config.BannedPlayerIds.Contains(ev.Player.UserId))
+
+        if (GetAudioPlayer(item.Serial) is null)
         {
-            ev.Player.ShowHint(Config.BannedMessage, 5.0f);
-            ev.IsAllowed = false;
-            return;
+            // TODO: Can probably remove this too - several other similar checks that i'll leave for now in case people have crazy experiences
+            Log.Error($"OnAcquired: AudioPlayer is still null for {Identifier(item.Serial)}");
         }
     }
 
@@ -336,13 +347,11 @@ public class Boombox : CustomItem
             return;
         }
         SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
-
-        // TODO: Consider using PickupSpawned instead here -- ????
+        Log.Debug($"{ev.Player.Nickname} dropped {Identifier(ev.Pickup.Serial)}");
 
         var audioPlayer = GetAudioPlayer(ev.Pickup.Serial);
         if (audioPlayer is not null)
         {
-            Log.Debug($"{ev.Player.Nickname} dropped the {Identifier(ev.Pickup.Serial)}");
             AudioHelper.AttachAudioPlayer(audioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
         }
     }
@@ -534,20 +543,16 @@ public class Boombox : CustomItem
 
         // Set the radio and song index to the new range and playlist position
         Playlists[newRange].SongIndex = newIndex;
-        if (newRange != oldRange)
-        {
-            Radio radio = (Radio)Item.Get(itemSerial);
-            if (radio is not null)
-            {
-                Log.Debug($"-- changing radio range to {newRange}");
-                // TODO: Change radio preset to the new range
-                radio.Range = newRange;
-            }
-            else
-            {
-                Log.Warn($"-- could not change radio range to {newRange}: boombox Radio is null");
-            }
-        }
+        // TODO: Change radio preset to the new range
+        //if (newRange != oldRange)
+        //{
+        //    Radio radio = (Radio)Item.Get(itemSerial);
+        //    if (radio is not null)
+        //    {
+        //        radio.Range = newRange;
+        //        Log.Debug($"-- changing radio range to {newRange}");
+        //    }
+        //}
 
         PlaySong(Playlists[newRange].CurrentSong, itemSerial, player);
         HintManager.ShowShuffleSong(player, Playlists[newRange]);
