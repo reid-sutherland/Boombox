@@ -126,7 +126,7 @@ public class MainPlugin : Plugin<Config>
             {
                 if (player.CurrentItem is not null && CustomItem.TryGet("JBL Speaker", out CustomItem boombox))
                 {
-                    DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, tracked-serial={boombox.TrackedSerials.FirstOrDefault()}, BoomboxSerial={Boombox.BoomboxSerial}/{(ushort)Boombox.BoomboxSerial}");
+                    DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, tracked-serial={(Boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
                     if (boombox.Check(player.CurrentItem))
                     {
                         bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;

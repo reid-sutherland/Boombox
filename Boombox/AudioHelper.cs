@@ -76,7 +76,7 @@ public static class AudioHelper
 
             if (log)
             {
-                Log.Debug($"Setting audio player speaker to position: {audioPlayer.transform.position}");
+                Log.Debug($"Setting {audioPlayer.Name} speaker to position: {audioPlayer.transform.position}");
             }
             return outSpeaker;
         }

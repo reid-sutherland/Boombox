@@ -87,10 +87,6 @@ public sealed class Config : IConfig
             HintManager = new();
             Log.Warn($"HintManager is null in config. Using default Hint settings.");
         }
-        if (Boombox.SpawnProperties.Limit > 1)
-        {
-            throw new Exception("Boombox has a maximum item limit of 1.");
-        }
         if (Boombox.SpeakerVolume <= 0.0 || Boombox.SpeakerVolume > 1.0)
         {
             Boombox.SpeakerVolume = 1.0f;
