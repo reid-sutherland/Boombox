@@ -60,8 +60,6 @@ public class Boombox : CustomItem
 
     private Dictionary<ushort, AudioClipPlayback> Playbacks { get; set; } = new();
 
-    private Dictionary<ushort, string> DiedWithPlayerIds { get; set; } = new();
-
     // This is used to ensure the boombox can never be used like a regular radio
     private readonly Exiled.API.Structs.RadioRangeSettings boomboxSettings = new()
     {
@@ -77,8 +75,6 @@ public class Boombox : CustomItem
     private AudioPlayer GetAudioPlayer(ushort serial) => AudioPlayers.TryGetValue(serial, out var audioPlayer) ? audioPlayer : null;
 
     private AudioClipPlayback GetPlayback(ushort serial) => Playbacks.TryGetValue(serial, out var playback) ? playback : null;
-
-    private string GetDiedWithId(ushort serial) => DiedWithPlayerIds.TryGetValue(serial, out var id) ? id : "";
 
     [Description("Where the boombox can spawn. Currently a limit of 1 is required.")]
     public override SpawnProperties SpawnProperties { get; set; } = new()
@@ -119,8 +115,6 @@ public class Boombox : CustomItem
         // Pickups/drops
         Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
         Exiled.Events.Handlers.Player.DroppingItem += OnDroppingItem;
-        Exiled.Events.Handlers.Player.DroppedItem += OnDroppedItem;
-        Exiled.Events.Handlers.Player.Died += OnDied;
         // Radio
         Exiled.Events.Handlers.Player.ChangingRadioPreset += OnChangingRadioPreset;
         Exiled.Events.Handlers.Player.TogglingRadio += OnTogglingRadio;
@@ -140,8 +134,6 @@ public class Boombox : CustomItem
         // Pickups/drops
         Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
         Exiled.Events.Handlers.Player.DroppingItem -= OnDroppingItem;
-        Exiled.Events.Handlers.Player.DroppedItem -= OnDroppedItem;
-        Exiled.Events.Handlers.Player.Died -= OnDied;
         // Radio
         Exiled.Events.Handlers.Player.ChangingRadioPreset -= OnChangingRadioPreset;
         Exiled.Events.Handlers.Player.TogglingRadio -= OnTogglingRadio;
@@ -198,6 +190,7 @@ public class Boombox : CustomItem
             boomboxPickup.IsEnabled = false;
             boomboxPickup.BatteryLevel = 1.0f;
             boomboxPickup.Range = RadioRange.Short;
+            boomboxPickup.Scale = Scale;
 
             audioAttacher = pickup.GameObject;
         }
@@ -223,7 +216,6 @@ public class Boombox : CustomItem
         Serials.Add(serial);
         AudioPlayers[serial] = null;
         Playbacks[serial] = null;
-        DiedWithPlayerIds[serial] = "";
 
         // Create the audio player
         try
@@ -240,16 +232,16 @@ public class Boombox : CustomItem
             if (audioPlayer is not null)
             {
                 AudioPlayers[serial] = audioPlayer;
-                Log.Info($"Created audio player for initialized {Identifier(serial)} with name: {audioPlayer.Name}");
+                Log.Info($"Created audio player for spawned {Identifier(serial)} with name: {audioPlayer.Name}");
             }
             else
             {
-                Log.Error($"Failed to create audio player for {Identifier(serial)}");
+                Log.Error($"Failed to create audio player for spawned {Identifier(serial)}");
             }
         }
         catch (Exception ex)
         {
-            Log.Error($"Tried to create audio player for {Identifier(serial)}. Exception: {ex.Message}");
+            Log.Error($"Tried to create audio player for spawned {Identifier(serial)}. Exception: {ex.Message}");
         }
     }
 
@@ -306,20 +298,27 @@ public class Boombox : CustomItem
         Serials.Clear();
         AudioPlayers.Clear();
         Playbacks.Clear();
-        DiedWithPlayerIds.Clear();
     }
 
     // This is called after the dropped/died methods os it's just here in case it needs initializing (e.g. spawned via commands)
+
+    // Initializes newly spawned pickups, and/or attaches the audio player to the pickup for dropped/died events
     protected void OnPickupSpawned(PickupAddedEventArgs ev)
     {
         if (!Check(ev.Pickup))
         {
             return;
         }
+        SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
+        Log.Debug($"Pickup spawned for {Identifier(ev.Pickup.Serial)}");
 
-        if (GetAudioPlayer(ev.Pickup.Serial) is null)
+        var audioPlayer = GetAudioPlayer(ev.Pickup.Serial);
+        if (audioPlayer is not null)
         {
-            Log.Debug($"New Pickup spawned for {Identifier(ev.Pickup.Serial)}");
+            AudioHelper.AttachAudioPlayer(audioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
+        }
+        else
+        {
             Log.Debug($"-- no audio player, initializing");
             Initialize(ev.Pickup.Serial);
         }
@@ -373,76 +372,6 @@ public class Boombox : CustomItem
     {
         base.OnChanging(ev);
         SetBoomboxSettings((Radio)ev.Item);
-    }
-
-    // Moves the audio player from the player to the dropped pickup
-    protected void OnDroppedItem(DroppedItemEventArgs ev)
-    {
-        if (!Check(ev.Pickup))
-        {
-            return;
-        }
-        SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
-        Log.Debug($"{ev.Player.Nickname} dropped {Identifier(ev.Pickup.Serial)}");
-
-        var audioPlayer = GetAudioPlayer(ev.Pickup.Serial);
-        if (audioPlayer is not null)
-        {
-            AudioHelper.AttachAudioPlayer(audioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
-        }
-        else
-        {
-            Log.Error($"-- audio player was null for dropped item");
-        }
-    }
-
-    protected override void OnOwnerDying(OwnerDyingEventArgs ev)
-    {
-        base.OnOwnerDying(ev);
-        if (ev.Item is not null)
-        {
-            Log.Debug($"{ev.Player.Nickname} is dying with {Identifier(ev.Item.Serial)}");
-            DiedWithPlayerIds[ev.Item.Serial] = ev.Player.UserId;
-        }
-    }
-
-    // Moves the audio player from the player to the dropped pickup if the dead player was dying with the boombox
-    protected void OnDied(DiedEventArgs ev)
-    {
-        int toRemove = -1;
-        foreach (var it in DiedWithPlayerIds)
-        {
-            if (it.Value == ev.Player.UserId)
-            {
-                ushort serial = it.Key;
-                toRemove = serial;
-                Log.Debug($"{ev.Player.Nickname} died with {Identifier(serial)}");
-
-                Pickup boomboxPickup = Pickup.Get(serial);
-                if (boomboxPickup is not null)
-                {
-                    Log.Debug($"-- pickup pos: {boomboxPickup.Position}");
-                    var audioPlayer = GetAudioPlayer(serial);
-                    if (audioPlayer is not null)
-                    {
-                        AudioHelper.AttachAudioPlayer(audioPlayer, boomboxPickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
-                    }
-                    else
-                    {
-                        Log.Error($"-- audio player was null for died-with item");
-                    }
-                }
-                else
-                {
-                    Log.Error($"-- a Pickup was not found with serial: {serial}");
-                }
-                break;
-            }
-        }
-        if (toRemove >= 0)
-        {
-            DiedWithPlayerIds.Remove((ushort)toRemove);
-        }
     }
 
     // Changes the boombox playlist

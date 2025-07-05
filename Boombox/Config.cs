@@ -2,7 +2,6 @@ using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Interfaces;
 using System.Collections.Generic;
-using System;
 using System.ComponentModel;
 using System.IO;
 
