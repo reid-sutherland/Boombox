@@ -64,7 +64,10 @@ boombox:
 #### Limitations and issues
 
 1. Standard limitations of playing audio via AudioPlayerApi
-1. Currently there is a hard-coded limit of 1 Boombox instance. If you try to raise the `limit` in `spawn_properties`, the plugin will throw an exception before it is enabled. I have never tested with multiple but I plan to add that in the future.
+1. Like other plugins that use AudioPlayerApi, this plugin may cause conflicts with certain other plugins related to radio and/or voice communication patching
+  - e.g. ChaosRadio, ScpProximity, etc.
+1. Boomboxes on the ground (as Pickups) will play transmitted Radio messages like a normal radio
+  - I plan on fixing this via Harmony patching in the future, however this will likely cause further conflicts with plugins mentioned above
 
 #### Contributing
 
