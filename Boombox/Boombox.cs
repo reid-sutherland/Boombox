@@ -28,10 +28,10 @@ public class Boombox : CustomItem
     public override uint Id { get; set; } = 80085;
 
     [YamlIgnore]
-    public override string Name { get; set; } = "JBL Speaker";
+    public override string Name { get; set; } = "Boombox";
 
     [YamlIgnore]
-    public override string Description { get; set; } = "It looks like it's bass boosted!";
+    public override string Description { get; set; } = "A radio that plays music";
 
     [YamlIgnore]
     public override float Weight { get; set; } = 10.0f;
@@ -149,6 +149,42 @@ public class Boombox : CustomItem
         Exiled.Events.Handlers.Item.UsingRadioPickupBattery -= OnUsingRadioPickupBattery;
 
         base.UnsubscribeEvents();
+    }
+
+    // Override CustomItem hints with hints values from config
+    protected override void ShowPickedUpMessage(Player player)
+    {
+        if (!HintManager.TryShowPickedUpHint(player))
+        {
+            base.ShowPickedUpMessage(player);
+        }
+    }
+
+    protected override void ShowSelectedMessage(Player player)
+    {
+        if (!HintManager.TryShowSelectedHint(player))
+        {
+            base.ShowSelectedMessage(player);
+        }
+    }
+
+    // Disable battery drain on Boombox
+    protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
+    {
+        if (!Check(ev.Radio))
+        {
+            return;
+        }
+        ev.IsAllowed = false;
+    }
+
+    protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
+    {
+        if (!Check(ev.RadioPickup))
+        {
+            return;
+        }
+        ev.IsAllowed = false;
     }
 
     protected void Initialize(ushort serial)
@@ -407,26 +443,6 @@ public class Boombox : CustomItem
         {
             DiedWithPlayerIds.Remove((ushort)toRemove);
         }
-    }
-
-    // Disable battery drain on Boombox
-    protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
-    {
-        if (!Check(ev.Radio))
-        {
-            return;
-        }
-        ev.IsAllowed = false;
-    }
-
-    // Same as above
-    protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
-    {
-        if (!Check(ev.RadioPickup))
-        {
-            return;
-        }
-        ev.IsAllowed = false;
     }
 
     // Changes the boombox playlist

@@ -47,10 +47,6 @@ public class MainPlugin : Plugin<Config>
         // Validate config i guess
         Configs.Validate();
 
-        // Import any other boombox info that can't automatically be inferred from the config
-        Boombox.Name = string.IsNullOrEmpty(Configs.HintManager.BoomboxName) ? Boombox.Name : Configs.HintManager.BoomboxName;
-        Boombox.Description = string.IsNullOrEmpty(Configs.HintManager.BoomboxDescription) ? Boombox.Description : Configs.HintManager.BoomboxDescription;
-
         // Load audio files
         // TODO: Organize files by playlist directory
         Log.Info($"Loading audio clips from directory: {Configs.AudioPath}");
@@ -124,9 +120,9 @@ public class MainPlugin : Plugin<Config>
             DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
             if (ServerSettings.CheckSSInput(setting))
             {
-                if (player.CurrentItem is not null && CustomItem.TryGet("JBL Speaker", out CustomItem boombox))
+                if (CustomItem.TryGet(player, out CustomItem boombox) && boombox is not null)
                 {
-                    DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, tracked-serial={(Boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
+                    DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, is-tracked-serial={(Boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
                     if (boombox.Check(player.CurrentItem))
                     {
                         bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;
