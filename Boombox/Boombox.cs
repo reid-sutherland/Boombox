@@ -5,7 +5,6 @@ using Exiled.API.Features.Attributes;
 using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Spawn;
-using Exiled.CustomItems.API.EventArgs;
 using Exiled.CustomItems.API.Features;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Map;
@@ -114,13 +113,14 @@ public class Boombox : CustomItem
         Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnded;
         // Map
         Exiled.Events.Handlers.Map.PickupAdded += OnPickupSpawned;
-        // Pickups/drops
-        Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
-        // Radio
-        Exiled.Events.Handlers.Player.ChangingRadioPreset += OnChangingRadioPreset;
-        Exiled.Events.Handlers.Player.TogglingRadio += OnTogglingRadio;
+        // Player
         Exiled.Events.Handlers.Player.UsingRadioBattery += OnUsingRadioBattery;
         Exiled.Events.Handlers.Item.UsingRadioPickupBattery += OnUsingRadioPickupBattery;
+        LabApi.Events.Handlers.PlayerEvents.SendingVoiceMessage += OnPlayerSendingVoiceMessage;
+        LabApi.Events.Handlers.PlayerEvents.ReceivingVoiceMessage += OnPlayerReceivingVoiceMessage;
+        Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
+        Exiled.Events.Handlers.Player.ChangingRadioPreset += OnChangingRadioPreset;
+        Exiled.Events.Handlers.Player.TogglingRadio += OnTogglingRadio;
 
         base.SubscribeEvents();
     }
@@ -132,13 +132,14 @@ public class Boombox : CustomItem
         Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnded;
         // Map
         Exiled.Events.Handlers.Map.PickupAdded -= OnPickupSpawned;
-        // Pickups/drops
-        Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
-        // Radio
-        Exiled.Events.Handlers.Player.ChangingRadioPreset -= OnChangingRadioPreset;
-        Exiled.Events.Handlers.Player.TogglingRadio -= OnTogglingRadio;
+        // Player
         Exiled.Events.Handlers.Player.UsingRadioBattery -= OnUsingRadioBattery;
         Exiled.Events.Handlers.Item.UsingRadioPickupBattery -= OnUsingRadioPickupBattery;
+        LabApi.Events.Handlers.PlayerEvents.SendingVoiceMessage -= OnPlayerSendingVoiceMessage;
+        LabApi.Events.Handlers.PlayerEvents.ReceivingVoiceMessage -= OnPlayerReceivingVoiceMessage;
+        Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
+        Exiled.Events.Handlers.Player.ChangingRadioPreset -= OnChangingRadioPreset;
+        Exiled.Events.Handlers.Player.TogglingRadio -= OnTogglingRadio;
 
         base.UnsubscribeEvents();
     }
@@ -177,6 +178,45 @@ public class Boombox : CustomItem
             return;
         }
         ev.IsAllowed = false;
+    }
+
+    // Blocks players from transmitting or receiving voice with a Boombox
+    protected void OnPlayerSendingVoiceMessage(LabApi.Events.Arguments.PlayerEvents.PlayerSendingVoiceMessageEventArgs ev)
+    {
+        // first check that player is trying to use radio channel and is holding a radio
+        if (ev.Message.Channel != VoiceChat.VoiceChatChannel.Radio)
+        {
+            return;
+        }
+        if (!ev.Player.TryGetRadio(out LabApi.Features.Wrappers.RadioItem radioItem))
+        {
+            return;
+        }
+
+        if (IsBoombox(radioItem.Serial))
+        {
+            //Log.Debug($"{ev.Player.Nickname} trying to send with a boombox: denied");
+            ev.IsAllowed = false;
+        }
+    }
+
+    protected void OnPlayerReceivingVoiceMessage(LabApi.Events.Arguments.PlayerEvents.PlayerReceivingVoiceMessageEventArgs ev)
+    {
+        // first check that player is trying to use radio channel and is holding a radio
+        if (ev.Message.Channel != VoiceChat.VoiceChatChannel.Radio)
+        {
+            return;
+        }
+        if (!ev.Player.TryGetRadio(out LabApi.Features.Wrappers.RadioItem radioItem))
+        {
+            return;
+        }
+
+        if (IsBoombox(radioItem.Serial))
+        {
+            //Log.Debug($"{ev.Player.Nickname} trying to receive with a boombox: denied");
+            ev.IsAllowed = false;
+        }
     }
 
     protected void Initialize(ushort serial)
