@@ -14,15 +14,13 @@ public sealed class Config : IConfig
     public bool IsEnabled { get; set; } = true;
 
     public bool Debug { get; set; } = false;
-
+    [Description("Enable this if you want to see extra debug logs for server-specific keybinds.")]
+    public bool KeybindDebug { get; set; } = false;
     [Description("Whether AudioAPI routines will write logs to debug.")]
     public bool AudioDebug { get; set; } = false;
 
     [Description("Path to the directory containing .ogg audio files. If left empty or invalid, will default to %APPDATA%/Roaming/EXILED/Audio/Boombox")]
     public string AudioPath { get; set; } = "";
-
-    [Description("Enable this if you want to see extra debug logs for server-specific keybinds.")]
-    public bool KeybindDebug { get; set; } = false;
 
     [Description("Configure hints here")]
     public HintManager HintManager { get; set; } = new();
@@ -30,24 +28,20 @@ public sealed class Config : IConfig
     [Description("Configure the Boombox's properties here")]
     public Boombox Boombox { get; set; } = new();
 
+    [Description("If someone is being naughty then put their SteamID here to block them from Boombox interaction.")]
+    public List<string> BannedPlayerIds { get; set; } = new();
+    [Description("Hint to be shown to a banned player that tries to pick up the Boombox.")]
+    public string BannedMessage { get; set; } = "You are currently banned from using the Boombox :)";
+
     [Description("Whether the J A R E D warhead easter egg is active. While enabled, once per round, a fake warhead animation will trigger when the easter egg conditions are met, for the memes.")]
     public bool EasterEggEnabled { get; set; } = false;
-
     [Description("Song name that should trigger the easter egg. Do not include file extension.")]
     public string EasterEggSong { get; set; } = "";
-
     [Description("SteamID of player that can trigger the easter egg.")]
     public string EasterEggPlayerId { get; set; } = "";
-
     [Description("How long (in seconds) to delay the animation once the easter egg is activated. This should line up with a sick drop within the song for maximum effect." +
         "Note that if the song is changed before the animation triggers, the sequence will abort and the easter egg can still be re-activated.")]
     public float EasterEggDelay { get; set; } = 0.0f;
-
-    [Description("If someone is being naughty then put their SteamID here to block them from Boombox interaction.")]
-    public List<string> BannedPlayerIds { get; set; } = new();
-
-    [Description("Hint to be shown to a banned player that tries to pick up the Boombox.")]
-    public string BannedMessage { get; set; } = "You are currently banned from using the Boombox :)";
 
     // TODO: Return a Result class and have OnEnabled() throw instead if any fatal errors
     public void Validate()
