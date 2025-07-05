@@ -7,7 +7,6 @@ using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UserSettings.ServerSpecific;
 using Random = System.Random;
 
@@ -21,7 +20,7 @@ public class MainPlugin : Plugin<Config>
 
     public override string Prefix { get; } = "Boombox";
 
-    public override Version Version { get; } = new(1, 1, 1);
+    public override Version Version { get; } = new(1, 2, 0);
 
     public override Version RequiredExiledVersion { get; } = new(9, 6, 1);
 
