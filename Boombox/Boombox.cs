@@ -54,11 +54,11 @@ public class Boombox : CustomItem
 
     private CoroutineHandle EasterEggHandle { get; set; } = new();
 
-    private HashSet<ushort> Serials { get; set; } = new();
+    private static HashSet<ushort> Serials { get; set; } = new();
 
-    private Dictionary<ushort, AudioPlayer> AudioPlayers { get; set; } = new();
+    private static Dictionary<ushort, AudioPlayer> AudioPlayers { get; set; } = new();
 
-    private Dictionary<ushort, AudioClipPlayback> Playbacks { get; set; } = new();
+    private static Dictionary<ushort, AudioClipPlayback> Playbacks { get; set; } = new();
 
     // This is used to ensure the boombox can never be used like a regular radio
     private readonly Exiled.API.Structs.RadioRangeSettings boomboxSettings = new()
@@ -68,7 +68,9 @@ public class Boombox : CustomItem
         MaxRange = 1,
     };
 
-    private string Identifier(ushort serial) => $"{nameof(Boombox)}-{serial}";
+    public static bool IsBoombox(ushort serial) => Serials.Contains(serial);
+
+    public static string Identifier(ushort serial) => $"{nameof(Boombox)}-{serial}";
 
     private string GetAudioPlayerName(ushort serial) => $"AP-{Identifier(serial)}";
 
@@ -114,7 +116,6 @@ public class Boombox : CustomItem
         Exiled.Events.Handlers.Map.PickupAdded += OnPickupSpawned;
         // Pickups/drops
         Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
-        Exiled.Events.Handlers.Player.DroppingItem += OnDroppingItem;
         // Radio
         Exiled.Events.Handlers.Player.ChangingRadioPreset += OnChangingRadioPreset;
         Exiled.Events.Handlers.Player.TogglingRadio += OnTogglingRadio;
@@ -133,7 +134,6 @@ public class Boombox : CustomItem
         Exiled.Events.Handlers.Map.PickupAdded -= OnPickupSpawned;
         // Pickups/drops
         Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
-        Exiled.Events.Handlers.Player.DroppingItem -= OnDroppingItem;
         // Radio
         Exiled.Events.Handlers.Player.ChangingRadioPreset -= OnChangingRadioPreset;
         Exiled.Events.Handlers.Player.TogglingRadio -= OnTogglingRadio;

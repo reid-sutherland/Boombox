@@ -120,24 +120,21 @@ public class MainPlugin : Plugin<Config>
             DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
             if (ServerSettings.CheckSSInput(setting))
             {
-                if (CustomItem.TryGet(player, out CustomItem boombox) && boombox is not null)
+                if (Boombox.Check(player.CurrentItem))
                 {
-                    DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, is-tracked-serial={(Boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
-                    if (boombox.Check(player.CurrentItem))
+                    if (CustomItem.TryGet(player.CurrentItem, out CustomItem item) && item is not null && item is Boombox boombox)
                     {
-                        bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;
-                        string keyType = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
-                        DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding the boombox: {boombox.Name}");
-                        Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle);
+                        DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, is-tracked-serial={(boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
                     }
-                    else
-                    {
-                        DebugKeybind($"-- player was NOT holding a boombox");
-                    }
+
+                    bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;
+                    string keyType = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
+                    DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding {Boombox.Identifier(player.CurrentItem.Serial)}");
+                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle);
                 }
                 else
                 {
-                    DebugKeybind($"-- did NOT find a boombox");
+                    DebugKeybind($"-- player was NOT holding a boombox");
                 }
             }
         }
