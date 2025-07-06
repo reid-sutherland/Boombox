@@ -1,4 +1,5 @@
-﻿using Exiled.API.Enums;
+﻿using CommonUtils.Core;
+using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
@@ -69,9 +70,9 @@ public class Boombox : CustomItem
 
     public static bool IsBoombox(ushort serial) => Serials.Contains(serial);
 
-    public static string Identifier(ushort serial) => $"{nameof(Boombox)}-{serial}";
+    public static string Identifier(ushort serial) => $"{nameof(Boombox)}({serial})";
 
-    private string GetAudioPlayerName(ushort serial) => $"AP-{Identifier(serial)}";
+    private string GetAudioPlayerName(ushort serial) => $"{Identifier(serial)}-AP";
 
     private AudioPlayer GetAudioPlayer(ushort serial) => AudioPlayers.TryGetValue(serial, out var audioPlayer) ? audioPlayer : null;
 

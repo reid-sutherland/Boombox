@@ -12,6 +12,7 @@ public sealed class Config : IConfig
     [Description("Whether the Boombox is enabled and should spawn in SCP-914.")]
     public bool IsEnabled { get; set; } = true;
 
+    [Description("Whether debug logs will print to the console.")]
     public bool Debug { get; set; } = false;
     [Description("Enable this if you want to see extra debug logs for server-specific keybinds.")]
     public bool KeybindDebug { get; set; } = false;
@@ -80,12 +81,12 @@ public sealed class Config : IConfig
             HintManager = new();
             Log.Warn($"HintManager is null in config. Using default Hint settings.");
         }
-        if (Boombox.SpeakerVolume <= 0.0 || Boombox.SpeakerVolume > 1.0)
+        if (Boombox.SpeakerVolume < 0.0 || Boombox.SpeakerVolume > 1.0)
         {
             Boombox.SpeakerVolume = 1.0f;
             Log.Warn($"Config had invalid value for SpeakerVolume: {Boombox.SpeakerVolume} - defaulting to {Boombox.SpeakerVolume}");
         }
-        if (Boombox.SpeakerCount <= 0 || Boombox.SpeakerCount > 20)
+        if (Boombox.SpeakerCount < 0 || Boombox.SpeakerCount > 10)
         {
             Boombox.SpeakerCount = 1;
             Log.Warn($"Config had invalid value for SpeakerCount: {Boombox.SpeakerCount} - defaulting to {Boombox.SpeakerCount}");

@@ -1,7 +1,6 @@
-// TODO: Fix issues with Core and then re-add this
-//global using Log = CommonUtils.Core.Logger;
+global using Log = CommonUtils.Core.Logger;
 
-//using CommonUtils.Core;
+using CommonUtils.Core;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
@@ -38,10 +37,10 @@ public class MainPlugin : Plugin<Config>
     {
         Singleton = this;
         Random = new();
-        //if (Configs.Debug)
-        //{
-        //    Log.EnableDebug();
-        //}
+        if (Configs.Debug)
+        {
+            Log.EnableDebug();
+        }
 
         // Validate config i guess
         Configs.Validate();
@@ -141,9 +140,6 @@ public class MainPlugin : Plugin<Config>
 
     public void DebugKeybind(string message)
     {
-        if (Configs.KeybindDebug)
-        {
-            Log.Debug(message);
-        }
+        Log.Debug(message, print: Configs.KeybindDebug);
     }
 }
