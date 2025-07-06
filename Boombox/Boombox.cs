@@ -114,13 +114,13 @@ public class Boombox : CustomItem
         // Map
         Exiled.Events.Handlers.Map.PickupAdded += OnPickupSpawned;
         // Player
+        Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
+        Exiled.Events.Handlers.Player.TogglingRadio += OnTogglingRadio;
+        Exiled.Events.Handlers.Player.ChangingRadioPreset += OnChangingRadioPreset;
         Exiled.Events.Handlers.Player.UsingRadioBattery += OnUsingRadioBattery;
         Exiled.Events.Handlers.Item.UsingRadioPickupBattery += OnUsingRadioPickupBattery;
         LabApi.Events.Handlers.PlayerEvents.SendingVoiceMessage += OnPlayerSendingVoiceMessage;
         LabApi.Events.Handlers.PlayerEvents.ReceivingVoiceMessage += OnPlayerReceivingVoiceMessage;
-        Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
-        Exiled.Events.Handlers.Player.ChangingRadioPreset += OnChangingRadioPreset;
-        Exiled.Events.Handlers.Player.TogglingRadio += OnTogglingRadio;
 
         base.SubscribeEvents();
     }
@@ -133,95 +133,20 @@ public class Boombox : CustomItem
         // Map
         Exiled.Events.Handlers.Map.PickupAdded -= OnPickupSpawned;
         // Player
+        Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
+        Exiled.Events.Handlers.Player.TogglingRadio -= OnTogglingRadio;
+        Exiled.Events.Handlers.Player.ChangingRadioPreset -= OnChangingRadioPreset;
         Exiled.Events.Handlers.Player.UsingRadioBattery -= OnUsingRadioBattery;
         Exiled.Events.Handlers.Item.UsingRadioPickupBattery -= OnUsingRadioPickupBattery;
         LabApi.Events.Handlers.PlayerEvents.SendingVoiceMessage -= OnPlayerSendingVoiceMessage;
         LabApi.Events.Handlers.PlayerEvents.ReceivingVoiceMessage -= OnPlayerReceivingVoiceMessage;
-        Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
-        Exiled.Events.Handlers.Player.ChangingRadioPreset -= OnChangingRadioPreset;
-        Exiled.Events.Handlers.Player.TogglingRadio -= OnTogglingRadio;
 
         base.UnsubscribeEvents();
     }
 
-    // Override CustomItem hints with hints values from config
-    protected override void ShowPickedUpMessage(Player player)
+    protected void InitializeBoombox(ushort serial)
     {
-        if (!HintManager.TryShowPickedUpHint(player))
-        {
-            base.ShowPickedUpMessage(player);
-        }
-    }
-
-    protected override void ShowSelectedMessage(Player player)
-    {
-        if (!HintManager.TryShowSelectedHint(player))
-        {
-            base.ShowSelectedMessage(player);
-        }
-    }
-
-    // Disable battery drain on Boombox
-    protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
-    {
-        if (!Check(ev.Radio))
-        {
-            return;
-        }
-        ev.IsAllowed = false;
-    }
-
-    protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
-    {
-        if (!Check(ev.RadioPickup))
-        {
-            return;
-        }
-        ev.IsAllowed = false;
-    }
-
-    // Blocks players from transmitting or receiving voice with a Boombox
-    protected void OnPlayerSendingVoiceMessage(LabApi.Events.Arguments.PlayerEvents.PlayerSendingVoiceMessageEventArgs ev)
-    {
-        // first check that player is trying to use radio channel and is holding a radio
-        if (ev.Message.Channel != VoiceChat.VoiceChatChannel.Radio)
-        {
-            return;
-        }
-        if (!ev.Player.TryGetRadio(out LabApi.Features.Wrappers.RadioItem radioItem))
-        {
-            return;
-        }
-
-        if (IsBoombox(radioItem.Serial))
-        {
-            //Log.Debug($"{ev.Player.Nickname} trying to send with a boombox: denied");
-            ev.IsAllowed = false;
-        }
-    }
-
-    protected void OnPlayerReceivingVoiceMessage(LabApi.Events.Arguments.PlayerEvents.PlayerReceivingVoiceMessageEventArgs ev)
-    {
-        // first check that player is trying to use radio channel and is holding a radio
-        if (ev.Message.Channel != VoiceChat.VoiceChatChannel.Radio)
-        {
-            return;
-        }
-        if (!ev.Player.TryGetRadio(out LabApi.Features.Wrappers.RadioItem radioItem))
-        {
-            return;
-        }
-
-        if (IsBoombox(radioItem.Serial))
-        {
-            //Log.Debug($"{ev.Player.Nickname} trying to receive with a boombox: denied");
-            ev.IsAllowed = false;
-        }
-    }
-
-    protected void Initialize(ushort serial)
-    {
-        // First look for a pickup, then an item with matching serial to initialize
+        // First look for a pickup or an item with matching serial to initialize
         GameObject audioAttacher = null;
         Pickup pickup = Pickup.Get(serial);
         Item item = Item.Get(serial);
@@ -321,7 +246,7 @@ public class Boombox : CustomItem
             if (!Serials.Contains(serial) || GetAudioPlayer(serial) == null)
             {
                 Log.Debug($"On round start: AP tracker was null for serial {serial}, initializing");
-                Initialize(serial);
+                InitializeBoombox(serial);
             }
         }
 
@@ -339,8 +264,6 @@ public class Boombox : CustomItem
         AudioPlayers.Clear();
         Playbacks.Clear();
     }
-
-    // This is called after the dropped/died methods os it's just here in case it needs initializing (e.g. spawned via commands)
 
     // Initializes newly spawned pickups, and/or attaches the audio player to the pickup for dropped/died events
     protected void OnPickupSpawned(PickupAddedEventArgs ev)
@@ -360,7 +283,7 @@ public class Boombox : CustomItem
         else
         {
             Log.Debug($"-- no audio player, initializing");
-            Initialize(ev.Pickup.Serial);
+            InitializeBoombox(ev.Pickup.Serial);
         }
     }
 
@@ -397,7 +320,7 @@ public class Boombox : CustomItem
         else
         {
             Log.Debug($"-- no audio player, initializing");
-            Initialize(item.Serial);
+            InitializeBoombox(item.Serial);
         }
 
         if (GetAudioPlayer(item.Serial) is null)
@@ -412,23 +335,6 @@ public class Boombox : CustomItem
     {
         base.OnChanging(ev);
         SetBoomboxSettings((Radio)ev.Item);
-    }
-
-    // Changes the boombox playlist
-    protected void OnChangingRadioPreset(ChangingRadioPresetEventArgs ev)
-    {
-        if (!Check(ev.Radio))
-        {
-            return;
-        }
-        if (ev.Radio.IsEnabled)
-        {
-            Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range]}");
-
-            // don't show conflicting hints if the playlist is empty or when changing song here
-            ChangeSong(ev.Player, ev.Radio.Serial, ev.NewValue, QueueType.Current, showHint: false);     // disable change-song hint so it doesn't conflict with the change-playlist hint above
-            HintManager.ShowChangePlaylist(ev.Player, Playlists[ev.NewValue]);
-        }
     }
 
     // Pauses/unpauses the boombox playback
@@ -461,6 +367,23 @@ public class Boombox : CustomItem
         else
         {
             Log.Error($"-- audio player was null for toggled radio");
+        }
+    }
+
+    // Changes the boombox playlist
+    protected void OnChangingRadioPreset(ChangingRadioPresetEventArgs ev)
+    {
+        if (!Check(ev.Radio))
+        {
+            return;
+        }
+        if (ev.Radio.IsEnabled)
+        {
+            Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range]}");
+
+            // don't show conflicting hints if the playlist is empty or when changing song here
+            ChangeSong(ev.Player, ev.Radio.Serial, ev.NewValue, QueueType.Current, showHint: false);     // disable change-song hint so it doesn't conflict with the change-playlist hint above
+            HintManager.ShowChangePlaylist(ev.Player, Playlists[ev.NewValue]);
         }
     }
 
@@ -646,6 +569,81 @@ public class Boombox : CustomItem
         {
             //Log.Debug($"** setting boombox settings on RadioPickup: {radioPickup.Serial}");
             radioPickup.BatteryLevel = 100;
+        }
+    }
+
+    // Override CustomItem hints with hints values from config
+    protected override void ShowPickedUpMessage(Player player)
+    {
+        if (!HintManager.TryShowPickedUpHint(player))
+        {
+            base.ShowPickedUpMessage(player);
+        }
+    }
+
+    protected override void ShowSelectedMessage(Player player)
+    {
+        if (!HintManager.TryShowSelectedHint(player))
+        {
+            base.ShowSelectedMessage(player);
+        }
+    }
+
+    // Disable battery drain on Boombox
+    protected void OnUsingRadioBattery(UsingRadioBatteryEventArgs ev)
+    {
+        if (!Check(ev.Radio))
+        {
+            return;
+        }
+        ev.IsAllowed = false;
+    }
+
+    protected void OnUsingRadioPickupBattery(UsingRadioPickupBatteryEventArgs ev)
+    {
+        if (!Check(ev.RadioPickup))
+        {
+            return;
+        }
+        ev.IsAllowed = false;
+    }
+
+    // Blocks players from transmitting or receiving voice with a Boombox
+    protected void OnPlayerSendingVoiceMessage(LabApi.Events.Arguments.PlayerEvents.PlayerSendingVoiceMessageEventArgs ev)
+    {
+        // first check that player is trying to use radio channel and is holding a radio
+        if (ev.Message.Channel != VoiceChat.VoiceChatChannel.Radio)
+        {
+            return;
+        }
+        if (!ev.Player.TryGetRadio(out LabApi.Features.Wrappers.RadioItem radioItem))
+        {
+            return;
+        }
+
+        if (IsBoombox(radioItem.Serial))
+        {
+            //Log.Debug($"{ev.Player.Nickname} trying to send with a boombox: denied");
+            ev.IsAllowed = false;
+        }
+    }
+
+    protected void OnPlayerReceivingVoiceMessage(LabApi.Events.Arguments.PlayerEvents.PlayerReceivingVoiceMessageEventArgs ev)
+    {
+        // first check that player is trying to use radio channel and is holding a radio
+        if (ev.Message.Channel != VoiceChat.VoiceChatChannel.Radio)
+        {
+            return;
+        }
+        if (!ev.Player.TryGetRadio(out LabApi.Features.Wrappers.RadioItem radioItem))
+        {
+            return;
+        }
+
+        if (IsBoombox(radioItem.Serial))
+        {
+            //Log.Debug($"{ev.Player.Nickname} trying to receive with a boombox: denied");
+            ev.IsAllowed = false;
         }
     }
 }
