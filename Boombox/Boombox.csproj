@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
 		<AssemblyName>Boombox</AssemblyName>
+		<Version>1.2.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Configurations>Debug;Release</Configurations>
 		<Platforms>AnyCPU</Platforms>
