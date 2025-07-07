@@ -113,8 +113,8 @@ public class MainPlugin : Plugin<Config>
     {
         Player player = Player.Get(sender);
 
-        DebugKeybind($"Player {(player is not null ? player.Nickname : "<NULL>")} triggered SS input: ({setting.SettingId}) {setting.DebugValue}");
-        if ((setting as SSKeybindSetting).SyncIsPressed && setting.OriginalDefinition is SSKeybindSetting ssKeybind)
+        DebugKeybind($"Player {(player is not null ? player.Nickname : "<NULL>")} triggered SS input: {setting.SettingId} ({setting.DebugValue}): {setting.OriginalDefinition.Label}");
+        if (setting is SSKeybindSetting ssKeybind && ssKeybind.SyncIsPressed)
         {
             DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
             if (Configs.ServerSettings.CheckSSInput(setting))
