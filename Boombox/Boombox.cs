@@ -215,7 +215,7 @@ public class Boombox : CustomItem
         // Send a broadcast to any player that doesn't have the SS setting set
         if (HintManager.ShowSSWarningHints)
         {
-            int keybindSettingId = ServerSettings.ChangeSongKeybind.Base.SettingId;
+            int keybindSettingId = Config.ServerSettings.ChangeSongKeybind.Base.SettingId;
             foreach (Player player in Player.List)
             {
                 bool hasKeybindSetting = ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, keybindSettingId, out SSKeybindSetting result);

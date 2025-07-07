@@ -82,7 +82,7 @@ public class MainPlugin : Plugin<Config>
         }
 
         // Register events
-        ServerSettings.RegisterSettings();
+        Configs.ServerSettings.RegisterSettings();
         ServerSpecificSettingsSync.ServerOnSettingValueReceived += OnSSInput;
 
         base.OnEnabled();
@@ -92,7 +92,7 @@ public class MainPlugin : Plugin<Config>
     {
         base.OnDisabled();
 
-        ServerSettings.UnregisterSettings();
+        Configs.ServerSettings.UnregisterSettings();
         ServerSpecificSettingsSync.ServerOnSettingValueReceived -= OnSSInput;
 
         Log.Debug("Un-registering custom items...");
@@ -117,7 +117,7 @@ public class MainPlugin : Plugin<Config>
         if ((setting as SSKeybindSetting).SyncIsPressed && setting.OriginalDefinition is SSKeybindSetting ssKeybind)
         {
             DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
-            if (ServerSettings.CheckSSInput(setting))
+            if (Configs.ServerSettings.CheckSSInput(setting))
             {
                 if (Boombox.Check(player.CurrentItem))
                 {
@@ -126,8 +126,8 @@ public class MainPlugin : Plugin<Config>
                         DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, is-tracked-serial={(boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
                     }
 
-                    bool shuffle = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId;
-                    string keyType = ssKeybind.SettingId == ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
+                    bool shuffle = ssKeybind.SettingId == Configs.ServerSettings.ShuffleSongKeybind.Base.SettingId;
+                    string keyType = ssKeybind.SettingId == Configs.ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
                     DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding {Boombox.Identifier(player.CurrentItem.Serial)}");
                     Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle);
                 }
