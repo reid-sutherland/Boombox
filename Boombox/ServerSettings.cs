@@ -1,39 +1,58 @@
 ﻿using Exiled.API.Features.Core.UserSettings;
 using System.Collections.Generic;
+using System.ComponentModel;
 using UnityEngine;
 using UserSettings.ServerSpecific;
+using YamlDotNet.Serialization;
 
 namespace Boombox;
 
-public static class ServerSettings
+public class ServerSettings
 {
-    public static HeaderSetting BoomboxHeader { get; set; } = new HeaderSetting("Boombox");
+    [YamlIgnore]
+    public HeaderSetting BoomboxHeader { get; private set; } = new HeaderSetting("Boombox");
 
-    public static KeybindSetting ChangeSongKeybind { get; private set; }
-    public static KeybindSetting ShuffleSongKeybind { get; private set; }
+    [YamlIgnore]
+    public KeybindSetting ChangeSongKeybind { get; private set; }
 
-    public static List<int> KeybindSettingIds { get; private set; } = new();
+    [YamlIgnore]
+    public KeybindSetting ShuffleSongKeybind { get; private set; }
+
+    private List<int> KeybindSettingIds { get; set; } = new();
+
+    [Description("Modify ServerSpecificSettings properties for the ChangeSong keybind here.")]
+    public int ChangeSongKeybindId { get; set; } = 80081;
+    public string ChangeSongKeybindLabel { get; set; } = $"Change Song - {KeyCode.F}";
+    public string ChangeSongKeybindHintDescription { get; set; } = "";
+
+    [Description("Modify ServerSpecificSettings properties for the ShuffleSong keybind here.")]
+    public int ShuffleSongKeybindId { get; set; } = 80082;
+    public string ShuffleSongKeybindLabel { get; set; } = $"Shuffle Song - {KeyCode.G}";
+    public string ShuffleSongKeybindHintDescription { get; set; } = "";
 
     //public static bool ShouldShowX(Player player) => !(player.SessionVariables.TryGetValue("X", out var value) && value is bool enabled && !enabled);
 
-    public static void RegisterSettings()
+    public void RegisterSettings()
     {
-        ChangeSongKeybind = new KeybindSetting(
-            id: 80081,
-            label: $"Change Song - {KeyCode.F}",
+        ChangeSongKeybind = new(
+            id: ChangeSongKeybindId,
+            label: ChangeSongKeybindLabel,
             suggested: KeyCode.F,
             preventInteractionOnGUI: true,
             allowSpectatorTrigger: false,
+            hintDescription: ChangeSongKeybindHintDescription,
             header: BoomboxHeader
         );
-        ShuffleSongKeybind = new KeybindSetting(
-            id: 80082,
-            label: $"Shuffle Song - {KeyCode.G}",
+        ShuffleSongKeybind = new(
+            id: ShuffleSongKeybindId,
+            label: ShuffleSongKeybindLabel,
             suggested: KeyCode.G,
             preventInteractionOnGUI: true,
             allowSpectatorTrigger: false,
+            hintDescription: ShuffleSongKeybindHintDescription,
             header: BoomboxHeader
         );
+
         KeybindSettingIds = new()
         {
             ChangeSongKeybind.Base.SettingId,
@@ -46,7 +65,7 @@ public static class ServerSettings
             ShuffleSongKeybind,
         });
     }
-    public static void UnregisterSettings()
+    public void UnregisterSettings()
     {
         SettingBase.Unregister(settings: new[]
         {
@@ -55,7 +74,7 @@ public static class ServerSettings
         });
     }
 
-    public static bool CheckSSInput(ServerSpecificSettingBase setting)
+    public bool CheckSSInput(ServerSpecificSettingBase setting)
     {
         if (setting.OriginalDefinition is SSKeybindSetting ssKeybind)
         {
