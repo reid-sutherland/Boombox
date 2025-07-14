@@ -480,6 +480,7 @@ public class Boombox : CustomItem
     }
     public void LoopSong(Player player, ushort itemSerial, RadioRange range, bool showHint = true)
     {
+        // TODO: Add looping entire playlist
         Playlist playlist = Playlists[range];
         if (playlist.Length == 0)
         {
