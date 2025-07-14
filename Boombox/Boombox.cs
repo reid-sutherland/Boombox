@@ -389,7 +389,7 @@ public class Boombox : CustomItem
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
-    public void OnBoomboxKeyPressed(Player player, Item currentItem, bool shuffle = false)
+    public void OnBoomboxKeyPressed(Player player, Item currentItem, bool shuffle = false, bool loop = false, bool change = false)
     {
         if (!Check(currentItem))
         {
@@ -405,11 +405,15 @@ public class Boombox : CustomItem
         {
             if (shuffle)
             {
-                ShuffleSong(player, currentItem.Serial, boombox.Range);
+                ShuffleSong(player, boombox.Serial, boombox.Range);
             }
-            else
+            if (loop)
             {
-                ChangeSong(player, currentItem.Serial, boombox.Range, QueueType.Next);
+                LoopSong(player, boombox.Serial, boombox.Range);
+            }
+            if (change)
+            {
+                ChangeSong(player, boombox.Serial, boombox.Range, QueueType.Current);
             }
         }
         else
@@ -473,6 +477,18 @@ public class Boombox : CustomItem
 
         PlaySong(Playlists[newRange].CurrentSong, itemSerial, player);
         HintManager.ShowShuffleSong(player, Playlists[newRange]);
+    }
+    public void LoopSong(Player player, ushort itemSerial, RadioRange range, bool showHint = true)
+    {
+        Playlist playlist = Playlists[range];
+        if (playlist.Length == 0)
+        {
+            Log.Debug($"No songs in the playlist for range: {range}");
+            return;
+        }
+        var currentPlayback = GetPlayback(itemSerial);
+        currentPlayback.Loop = !currentPlayback.Loop;
+        HintManager.ShowLoopSong(player, currentPlayback.Loop);
     }
 
     private void PlaySong(string song, ushort itemSerial, Player player = null, bool shuffle = false, bool showHint = true, bool addAll = false)
