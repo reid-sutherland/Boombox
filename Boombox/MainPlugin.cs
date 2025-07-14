@@ -126,9 +126,11 @@ public class MainPlugin : Plugin<Config>
                     }
 
                     bool shuffle = ssKeybind.SettingId == Configs.ServerSettings.ShuffleSongKeybind.Base.SettingId;
+                    bool loop = ssKeybind.SettingId == Configs.ServerSettings.LoopSongKeybind.Base.SettingId;
+                    bool change = ssKeybind.SettingId == Configs.ServerSettings.ChangeSongKeybind.Base.SettingId;
                     string keyType = ssKeybind.SettingId == Configs.ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
                     DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding {Boombox.Identifier(player.CurrentItem.Serial)}");
-                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle);
+                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle, loop, change);
                 }
                 else
                 {

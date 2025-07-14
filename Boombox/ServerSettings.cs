@@ -17,6 +17,8 @@ public class ServerSettings
 
     [YamlIgnore]
     public KeybindSetting ShuffleSongKeybind { get; private set; }
+    [YamlIgnore]
+    public KeybindSetting LoopSongKeybind { get; private set; }
 
     private List<int> KeybindSettingIds { get; set; } = new();
 
@@ -29,6 +31,9 @@ public class ServerSettings
     public int ShuffleSongKeybindId { get; set; } = 80082;
     public string ShuffleSongKeybindLabel { get; set; } = $"Shuffle Song - {KeyCode.G}";
     public string ShuffleSongKeybindHintDescription { get; set; } = "";
+    public int LoopSongKeybindId { get; set; } = 80083;
+    public string LoopSongKeybindLabel { get; set; } = $"Loop Song - {KeyCode.L}";
+    public string LoopSongKeybindHintDescription { get; set; } = "";
 
     //public static bool ShouldShowX(Player player) => !(player.SessionVariables.TryGetValue("X", out var value) && value is bool enabled && !enabled);
 
@@ -52,25 +57,38 @@ public class ServerSettings
             hintDescription: ShuffleSongKeybindHintDescription,
             header: BoomboxHeader
         );
+        LoopSongKeybind = new(
+            id: LoopSongKeybindId,
+            label: ShuffleSongKeybindLabel,
+            suggested: KeyCode.L,
+            preventInteractionOnGUI: true,
+            allowSpectatorTrigger: false,
+            hintDescription: LoopSongKeybindHintDescription,
+            header: BoomboxHeader
+        );
 
         KeybindSettingIds = new()
         {
             ChangeSongKeybind.Base.SettingId,
             ShuffleSongKeybind.Base.SettingId,
+            LoopSongKeybind.Base.SettingId,
         };
 
         SettingBase.Register(settings: new[]
         {
             ChangeSongKeybind,
             ShuffleSongKeybind,
+            LoopSongKeybind,
         });
     }
+
     public void UnregisterSettings()
     {
         SettingBase.Unregister(settings: new[]
         {
             ChangeSongKeybind,
             ShuffleSongKeybind,
+            LoopSongKeybind,
         });
     }
 

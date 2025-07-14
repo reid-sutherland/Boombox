@@ -19,7 +19,7 @@ public sealed class Config : IConfig
     [Description("Whether AudioAPI routines will write logs to debug.")]
     public bool AudioDebug { get; set; } = false;
 
-    [Description("Path to the directory containing .ogg audio files. If left empty or invalid, will default to %APPDATA%/Roaming/EXILED/Audio/Boombox")]
+    [Description("Full path to the directory containing .ogg audio files. If left empty or invalid, will default to <EXILED Folder>/Audio/Boombox")]
     public string AudioPath { get; set; } = "";
 
     [Description("Customize ServerSpecificSettings-related configurations here. By default this should not be necessary.")]

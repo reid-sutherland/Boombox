@@ -27,6 +27,8 @@ public class HintManager
 
     [Description("Hint message when the ShuffleSong key is pressed.")]
     public string ShuffleSongHint { get; set; } = "Shuffled song to {songname}";
+    [Description("Hint message when the LoopSong key is pressed.")]
+    public string ToggleLoopHint { get; set; } = "Looping is now {status}";
 
     public bool TryShowPickedUpHint(Player player)
     {
@@ -73,5 +75,13 @@ public class HintManager
             .Replace("{playlistname}", playlist.Name)
             .Replace("{songname}", playlist.CurrentSong),
             HintDuration);
+    }
+
+    public void ShowLoopSong(Player player, bool isLooping)
+    {
+        player.ShowHint(
+            ToggleLoopHint
+                .Replace("{status}", isLooping ? "enabled" : "disabled")
+            );
     }
 }
