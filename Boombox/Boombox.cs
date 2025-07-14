@@ -409,7 +409,7 @@ public class Boombox : CustomItem
             }
             if (loop)
             {
-                LoopSong(player, boombox.Serial, boombox.Range);
+                LoopSong(player, boombox.Serial);
             }
             if (change)
             {
@@ -478,16 +478,15 @@ public class Boombox : CustomItem
         PlaySong(Playlists[newRange].CurrentSong, itemSerial, player);
         HintManager.ShowShuffleSong(player, Playlists[newRange]);
     }
-    public void LoopSong(Player player, ushort itemSerial, RadioRange range, bool showHint = true)
+    public void LoopSong(Player player, ushort itemSerial, bool showHint = true)
     {
         // TODO: Add looping entire playlist
-        Playlist playlist = Playlists[range];
-        if (playlist.Length == 0)
+        var currentPlayback = GetPlayback(itemSerial);
+        if (currentPlayback is null)
         {
-            Log.Debug($"No songs in the playlist for range: {range}");
+            Log.Debug($"Can't loop: No playback for {Identifier(itemSerial)}");
             return;
         }
-        var currentPlayback = GetPlayback(itemSerial);
         currentPlayback.Loop = !currentPlayback.Loop;
         HintManager.ShowLoopSong(player, currentPlayback.Loop);
     }

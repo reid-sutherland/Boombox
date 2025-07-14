@@ -32,7 +32,7 @@ public class ServerSettings
     public string ShuffleSongKeybindLabel { get; set; } = $"Shuffle Song - {KeyCode.G}";
     public string ShuffleSongKeybindHintDescription { get; set; } = "";
     public int LoopSongKeybindId { get; set; } = 80083;
-    public string LoopSongKeybindLabel { get; set; } = $"Loop Song - {KeyCode.H}";
+    public string LoopSongKeybindLabel { get; set; } = $"Loop Song - {KeyCode.L}";
     public string LoopSongKeybindHintDescription { get; set; } = "";
 
     //public static bool ShouldShowX(Player player) => !(player.SessionVariables.TryGetValue("X", out var value) && value is bool enabled && !enabled);
@@ -59,8 +59,8 @@ public class ServerSettings
         );
         LoopSongKeybind = new(
             id: LoopSongKeybindId,
-            label: "Loop Song",
-            suggested: KeyCode.H,
+            label: ShuffleSongKeybindLabel,
+            suggested: KeyCode.L,
             preventInteractionOnGUI: true,
             allowSpectatorTrigger: false,
             hintDescription: LoopSongKeybindHintDescription,
