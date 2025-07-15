@@ -24,7 +24,7 @@
 			  $(EXILED_PLUGINS)\dependencies\CommonUtils.Core.dll" />
 	</Target>
 
-	<Import Project="../Plugin.props" />
+	<Import Project="../Plugin.props" /> 
 
 	<ItemGroup>
 		<PackageReference Include="ExMod.Exiled" Version="9.6.1" />
