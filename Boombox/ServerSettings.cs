@@ -31,6 +31,7 @@ public class ServerSettings
     public int ShuffleSongKeybindId { get; set; } = 80082;
     public string ShuffleSongKeybindLabel { get; set; } = $"Shuffle Song - {KeyCode.G}";
     public string ShuffleSongKeybindHintDescription { get; set; } = "";
+    [Description("Modify ServerSpecificSettings properties for the LoopSong keybind here.")]
     public int LoopSongKeybindId { get; set; } = 80083;
     public string LoopSongKeybindLabel { get; set; } = $"Loop Song - {KeyCode.L}";
     public string LoopSongKeybindHintDescription { get; set; } = "";
@@ -59,7 +60,7 @@ public class ServerSettings
         );
         LoopSongKeybind = new(
             id: LoopSongKeybindId,
-            label: ShuffleSongKeybindLabel,
+            label: LoopSongKeybindLabel,
             suggested: KeyCode.L,
             preventInteractionOnGUI: true,
             allowSpectatorTrigger: false,

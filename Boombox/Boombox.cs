@@ -389,7 +389,7 @@ public class Boombox : CustomItem
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
-    public void OnBoomboxKeyPressed(Player player, Item currentItem, bool shuffle = false, bool loop = false, bool change = false)
+    public void OnBoomboxKeyPressed(Player player, Item currentItem, int keyId)
     {
         if (!Check(currentItem))
         {
@@ -403,17 +403,22 @@ public class Boombox : CustomItem
 
         if (boombox.IsEnabled)
         {
-            if (shuffle)
+            Log.Debug($"{player.Nickname} pressed the Boombox key: {Identifier(boombox.Serial)} with key type: {keyId}");
+            if (keyId == Config.ServerSettings.ChangeSongKeybindId)
+            {
+                ChangeSong(player, boombox.Serial, boombox.Range, QueueType.Next);
+            }
+            else if (keyId == Config.ServerSettings.ShuffleSongKeybindId)
             {
                 ShuffleSong(player, boombox.Serial, boombox.Range);
             }
-            if (loop)
+            else if (keyId == Config.ServerSettings.LoopSongKeybindId)
             {
                 LoopSong(player, boombox.Serial);
             }
-            if (change)
+            else
             {
-                ChangeSong(player, boombox.Serial, boombox.Range, QueueType.Current);
+                Log.Debug($"{player.Nickname} pressed the Boombox key with an unknown key id: {keyId}");
             }
         }
         else

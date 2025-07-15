@@ -118,19 +118,15 @@ public class MainPlugin : Plugin<Config>
             DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
             if (Configs.ServerSettings.CheckSSInput(setting))
             {
-                if (Boombox.Check(player.CurrentItem))
+                if (player != null && Boombox.Check(player.CurrentItem))
                 {
                     if (CustomItem.TryGet(player.CurrentItem, out CustomItem item) && item is not null && item is Boombox boombox)
                     {
                         DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, is-tracked-serial={(boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
                     }
-
-                    bool shuffle = ssKeybind.SettingId == Configs.ServerSettings.ShuffleSongKeybind.Base.SettingId;
-                    bool loop = ssKeybind.SettingId == Configs.ServerSettings.LoopSongKeybind.Base.SettingId;
-                    bool change = ssKeybind.SettingId == Configs.ServerSettings.ChangeSongKeybind.Base.SettingId;
-                    string keyType = ssKeybind.SettingId == Configs.ServerSettings.ShuffleSongKeybind.Base.SettingId ? "ShuffleSong" : "ChangeSong";
+                    int keyType = ssKeybind.SettingId;
                     DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding {Boombox.Identifier(player.CurrentItem.Serial)}");
-                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, shuffle, loop, change);
+                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, keyType);
                 }
                 else
                 {
