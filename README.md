@@ -15,6 +15,7 @@ Uses:
 - Change the radio frequency/range to change playlists, the config has a different playlist option for each range. 
 - Press the Change Song key to cycle to the next song in the current playlist. 
 - Press the Shuffle Song key to switch to a random song in the entire set of playlists/songs.
+- Press the Loop Song key to toggle looping of the currently playing song.
 
 ## Installation / Depedencies
 
