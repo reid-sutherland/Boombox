@@ -101,4 +101,21 @@ public class ServerSettings
         }
         return false;
     }
+
+    public string GetKeyType(int settingId)
+    {
+        if (settingId == ChangeSongKeybindId)
+        {
+            return "ChangeSong";
+        }
+        else if (settingId == ShuffleSongKeybindId)
+        {
+            return "ShuffleSong";
+        }
+        else if (settingId == LoopSongKeybindId)
+        {
+            return "LoopSong";
+        }
+        return "Unknown";
+    }
 }

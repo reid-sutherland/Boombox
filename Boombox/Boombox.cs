@@ -389,7 +389,7 @@ public class Boombox : CustomItem
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
-    public void OnBoomboxKeyPressed(Player player, Item currentItem, int keyId)
+    public void OnBoomboxKeyPressed(Player player, Item currentItem, int settingId)
     {
         if (!Check(currentItem))
         {
@@ -403,27 +403,23 @@ public class Boombox : CustomItem
 
         if (boombox.IsEnabled)
         {
-            Log.Debug($"{player.Nickname} pressed the Boombox key: {Identifier(boombox.Serial)} with key type: {keyId}");
-            if (keyId == Config.ServerSettings.ChangeSongKeybindId)
+            Log.Debug($"Player '{player.Nickname}' pressed the {Config.ServerSettings.GetKeyType(settingId)} key ({settingId}) while holding {Identifier(boombox.Serial)}");
+            if (settingId == Config.ServerSettings.ChangeSongKeybindId)
             {
                 ChangeSong(player, boombox.Serial, boombox.Range, QueueType.Next);
             }
-            else if (keyId == Config.ServerSettings.ShuffleSongKeybindId)
+            else if (settingId == Config.ServerSettings.ShuffleSongKeybindId)
             {
                 ShuffleSong(player, boombox.Serial, boombox.Range);
             }
-            else if (keyId == Config.ServerSettings.LoopSongKeybindId)
+            else if (settingId == Config.ServerSettings.LoopSongKeybindId)
             {
                 LoopSong(player, boombox.Serial);
-            }
-            else
-            {
-                Log.Debug($"{player.Nickname} pressed the Boombox key with an unknown key id: {keyId}");
             }
         }
         else
         {
-            Log.Debug($"Can't interact: Boombox is off");
+            Log.Debug($"Player '{player.Nickname}' can't interact: {Identifier(boombox.Serial)} is off");
         }
     }
 
@@ -483,7 +479,8 @@ public class Boombox : CustomItem
         PlaySong(Playlists[newRange].CurrentSong, itemSerial, player);
         HintManager.ShowShuffleSong(player, Playlists[newRange]);
     }
-    public void LoopSong(Player player, ushort itemSerial, bool showHint = true)
+
+    public void LoopSong(Player player, ushort itemSerial)
     {
         // TODO: Add looping entire playlist
         var currentPlayback = GetPlayback(itemSerial);
@@ -493,7 +490,7 @@ public class Boombox : CustomItem
             return;
         }
         currentPlayback.Loop = !currentPlayback.Loop;
-        HintManager.ShowLoopSong(player, currentPlayback.Loop);
+        HintManager.ShowToggleLoop(player, currentPlayback.Loop);
     }
 
     private void PlaySong(string song, ushort itemSerial, Player player = null, bool shuffle = false, bool showHint = true, bool addAll = false)
@@ -515,6 +512,7 @@ public class Boombox : CustomItem
         playback = audioPlayer.AddClip(song);
         Playbacks[itemSerial] = playback;
         Log.Debug($"Added clip '{playback.Clip}' to {Identifier(itemSerial)} audio player");
+
         if (player is not null)
         {
             // TODO: think this might need a check for position 0 in the playback

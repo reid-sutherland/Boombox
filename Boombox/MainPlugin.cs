@@ -111,22 +111,20 @@ public class MainPlugin : Plugin<Config>
     public void OnSSInput(ReferenceHub sender, ServerSpecificSettingBase setting)
     {
         Player player = Player.Get(sender);
-
         DebugKeybind($"Player {(player is not null ? player.Nickname : "<NULL>")} triggered SS input: {setting.SettingId} ({setting.DebugValue}): {setting.OriginalDefinition.Label}");
+        if (player is null)
+        {
+            return;
+        }
+
         if (setting is SSKeybindSetting ssKeybind && ssKeybind.SyncIsPressed)
         {
             DebugKeybind($"-- SS was a keybind setting: {ssKeybind.OriginalDefinition.Label} (id={ssKeybind.SettingId}, suggested={ssKeybind.SuggestedKey}, assigned={ssKeybind.AssignedKeyCode})");
             if (Configs.ServerSettings.CheckSSInput(setting))
             {
-                if (player != null && Boombox.Check(player.CurrentItem))
+                if (Boombox.Check(player.CurrentItem))
                 {
-                    if (CustomItem.TryGet(player.CurrentItem, out CustomItem item) && item is not null && item is Boombox boombox)
-                    {
-                        DebugKeybind($"-- found a boombox: {boombox.Name} (item-serial={player.CurrentItem.Serial}, is-tracked-serial={(boombox.TrackedSerials.Contains(player.CurrentItem.Serial) ? "true" : "false")})");
-                    }
-                    int keyType = ssKeybind.SettingId;
-                    DebugKeybind($"-- player {player.Nickname} pressed the {keyType} key while holding {Boombox.Identifier(player.CurrentItem.Serial)}");
-                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, keyType);
+                    Boombox.OnBoomboxKeyPressed(player, player.CurrentItem, ssKeybind.SettingId);
                 }
                 else
                 {
