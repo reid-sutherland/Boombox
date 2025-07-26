@@ -51,12 +51,13 @@ public class Boombox : CustomItem
     private HintManager HintManager => MainPlugin.Configs.HintManager;
 
     /// Notes about Radio items:
-    /// - Getting/setting a RadioPickup seems to mostly work fine, e.g. InitializeBoombox().
-    /// - However, getting/setting a Radio item held by a player does not seem to work.
-    /// - Gets always return the same incorrect data, and sets do not seem to stick.
+    /// - If the item was initially spawned as a pickup, then Item.Get(serial) seems to not work.
+    /// - Getters always return the same data from initialized, and Setters do not seem to stick.
+    /// - However if the item was spawned as an item (e.g. customitems.give) then the serial approach works for pickups/items.
     /// Notes about additional tracker dictionaries:
     /// - The Radio item issues above make it difficult to get an equipped Radio's range correctly.
     /// - Adding a Range tracker was the best way that I could find to make the Loop coroutine work effectively.
+    /// - However, this could cause bugs in the future so need to find a better system or revert.
     /// TODO: Now I need a better way to maintain per-Boombox state...
 
     private static HashSet<ushort> Serials { get; set; } = new();
@@ -74,14 +75,6 @@ public class Boombox : CustomItem
     private CoroutineHandle EasterEggHandle { get; set; } = new();
 
     private CoroutineHandle LoopHandle { get; set; } = new();
-
-    // This is used to ensure the boombox can never be used like a regular radio
-    private readonly Exiled.API.Structs.RadioRangeSettings boomboxSettings = new()
-    {
-        IdleUsage = 1.0f,
-        TalkingUsage = 1,
-        MaxRange = 1,
-    };
 
     public static bool IsBoombox(ushort serial) => Serials.Contains(serial);
 
@@ -169,7 +162,6 @@ public class Boombox : CustomItem
         // First look for a pickup or an item with matching serial to initialize
         GameObject audioAttacher = null;
         Pickup pickup = Pickup.Get(serial);
-        Item item = Item.Get(serial);
         if (pickup is not null && pickup is RadioPickup boomboxPickup)
         {
             boomboxPickup.IsEnabled = false;
@@ -179,19 +171,20 @@ public class Boombox : CustomItem
 
             audioAttacher = pickup.GameObject;
         }
-        else if (item is not null && item is Radio boomboxItem)
+        Item item = Item.Get(serial);
+        if (item is not null && item is Radio boomboxItem)
         {
             boomboxItem.IsEnabled = false;
             boomboxItem.BatteryLevel = 100;
             boomboxItem.Range = RadioRange.Short;
 
-            audioAttacher = item.Owner.GameObject;
-            if (item.Owner == Server.Host)
+            if (audioAttacher is null || item.Owner != Server.Host)
             {
-                Log.Warn($"Initialize: No item owner was found for {Identifier(serial)}: got ServerHost player");
+                // only set attacher if a pickup was not found or a real player is holding the item
+                audioAttacher = item.Owner.GameObject;
             }
         }
-        else
+        if (audioAttacher is null)
         {
             Log.Error($"Initialize: No pickup or item with matching serial was found for {Identifier(serial)}");
             return;
@@ -219,16 +212,16 @@ public class Boombox : CustomItem
             if (audioPlayer is not null)
             {
                 AudioPlayers[serial] = audioPlayer;
-                Log.Info($"Created audio player for spawned {Identifier(serial)} with name: {audioPlayer.Name}");
+                Log.Info($"Initialize: Created audio player for spawned {Identifier(serial)} with name: {audioPlayer.Name}");
             }
             else
             {
-                Log.Error($"Failed to create audio player for spawned {Identifier(serial)}");
+                Log.Error($"Initialize: Failed to create audio player for spawned {Identifier(serial)}");
             }
         }
         catch (Exception ex)
         {
-            Log.Error($"Tried to create audio player for spawned {Identifier(serial)}. Exception: {ex.Message}");
+            Log.Error($"Initialize: Tried to create audio player for spawned {Identifier(serial)}. Exception: {ex.Message}");
         }
     }
 
@@ -261,23 +254,20 @@ public class Boombox : CustomItem
             }
         }
 
-        // Check each tracked serial, if it wasn't initialized via OnPickupSpawned, initialize it here
+        // Check each tracked serial and initialize if needed
         foreach (int ser in TrackedSerials)
         {
             ushort serial = (ushort)ser;
             if (!Serials.Contains(serial) || GetAudioPlayer(serial) == null)
             {
-                Log.Debug($"On round start: AP tracker was null for serial {serial}, initializing");
+                Log.Debug($"OnRoundStart: No AudioPlayer for {Identifier(serial)}, initializing");
                 InitializeBoombox(serial);
             }
         }
-
         Log.Info($"Round started: spawned {Serials.Count} Boombox(es)");
-        if (Serials.Count > 0)
-        {
-            Log.Debug($"Starting LoopCoroutine");
-            LoopHandle = Timing.RunCoroutine(LoopCoroutine());
-        }
+
+        LoopHandle = Timing.RunCoroutine(LoopCoroutine());
+        Log.Debug($"Starting LoopCoroutine");
 
         if (Config.EasterEggEnabled)
         {
@@ -303,8 +293,8 @@ public class Boombox : CustomItem
         {
             return;
         }
-        SetBoomboxSettings(radioPickup: (RadioPickup)ev.Pickup);
         Log.Debug($"Pickup spawned for {Identifier(ev.Pickup.Serial)}");
+        ev.Pickup.Scale = Scale;    // scale likes to reset itself so re-apply
 
         var audioPlayer = GetAudioPlayer(ev.Pickup.Serial);
         if (audioPlayer is not null)
@@ -313,23 +303,13 @@ public class Boombox : CustomItem
         }
         else
         {
-            Log.Debug($"-- no audio player, initializing");
+            Log.Debug($"OnPickupSpawned: No AudioPlayer, initializing");
             InitializeBoombox(ev.Pickup.Serial);
         }
-    }
 
-    // Prevents banned users from picking up the boombox
-    protected void OnPickingUpItem(PickingUpItemEventArgs ev)
-    {
-        if (!Check(ev.Pickup))
+        if (GetAudioPlayer(ev.Pickup.Serial) is null)
         {
-            return;
-        }
-        if (Config.BannedPlayerIds.Contains(ev.Player.UserId))
-        {
-            ev.Player.ShowHint(Config.BannedMessage, 5.0f);
-            ev.IsAllowed = false;
-            return;
+            Log.Error($"OnPickupSpawned: AudioPlayer is still null for {Identifier(ev.Pickup.Serial)}");
         }
     }
 
@@ -350,22 +330,29 @@ public class Boombox : CustomItem
         }
         else
         {
-            Log.Debug($"-- no audio player, initializing");
+            Log.Debug($"OnAcquired: No AudioPlayer, initializing");
             InitializeBoombox(item.Serial);
         }
 
         if (GetAudioPlayer(item.Serial) is null)
         {
-            // TODO: Can probably remove this too - several other similar checks that i'll leave for now in case people have crazy experiences
             Log.Error($"OnAcquired: AudioPlayer is still null for {Identifier(item.Serial)}");
         }
     }
 
-    // Just sets the boombox settings
-    protected override void OnChanging(ChangingItemEventArgs ev)
+    // Prevents banned users from picking up the boombox :)
+    protected void OnPickingUpItem(PickingUpItemEventArgs ev)
     {
-        base.OnChanging(ev);
-        SetBoomboxSettings((Radio)ev.Item);
+        if (!Check(ev.Pickup))
+        {
+            return;
+        }
+        if (Config.BannedPlayerIds.Contains(ev.Player.UserId))
+        {
+            ev.Player.ShowHint(Config.BannedMessage, 5.0f);
+            ev.IsAllowed = false;
+            return;
+        }
     }
 
     // Pauses/unpauses the boombox playback
@@ -385,8 +372,10 @@ public class Boombox : CustomItem
             if (currentPlayback is null)
             {
                 ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player);
+                currentPlayback = GetPlayback(ev.Radio.Serial);
             }
-            else if (ev.NewState)
+
+            if (ev.NewState)
             {
                 currentPlayback.IsPaused = false;
             }
@@ -408,15 +397,19 @@ public class Boombox : CustomItem
         {
             return;
         }
-        if (ev.Radio.IsEnabled)
+        if (!ev.Radio.IsEnabled)
         {
-            RadioRanges[ev.Radio.Serial] = ev.NewValue;
-            Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range].Name}");
-
-            // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
-            ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
-            HintManager.ShowChangePlaylist(Playlists[ev.NewValue], ev.Player);
+            ev.IsAllowed = false;
+            return;
         }
+
+        // TODO: Replace this logic with a ChangePlaylist method so ChangeSong is separate
+        RadioRanges[ev.Radio.Serial] = ev.NewValue;
+        Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range].Name}");
+
+        // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
+        ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
+        HintManager.ShowChangePlaylist(Playlists[ev.NewValue], ev.Player);
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
@@ -502,18 +495,22 @@ public class Boombox : CustomItem
         string newSong = randomSong.Item3;
         Log.Debug($"Shuffled song to '{newSong}' (range={newRange} index={newIndex})");
 
+        // TODO: This method needs some adjustments or at least refinement:
+        //  - currently, Shuffle does not affect the current radio range, playlist, song, etc.
+        //  - it literally just sets the active playback to a random song
+
         // Set the radio and song index to the new range and playlist position
-        // TODO: Change radio preset to the new range
+        //RadioRange oldRange = GetRange(itemSerial);
         //if (newRange != oldRange)
         //{
         //    Radio radio = (Radio)Item.Get(itemSerial);
         //    if (radio is not null)
         //    {
+        //        // TODO: setting the radio to the new range does not work
         //        radio.Range = newRange;
         //        Log.Debug($"-- changing radio range to {newRange}");
         //    }
         //}
-
         Playlists[newRange].SongIndex = newIndex;
         PlaySong(itemSerial, Playlists[newRange].CurrentSong, player);
         HintManager.ShowShuffleSong(Playlists[newRange], player);
@@ -556,13 +553,13 @@ public class Boombox : CustomItem
 
         if (player is not null)
         {
-            // TODO: think this might need a check for position 0 in the playback
             // Easter egg
             if (Config.EasterEggEnabled)
             {
                 if (song == Config.EasterEggSong && player.UserId == Config.EasterEggPlayerId)
                 {
-                    ActivateEasterEgg();
+                    // TODO: PlaySong cancels on song change but need to cancel (or delay) coroutine on playback paused
+                    ActivateEasterEgg(playback);
                 }
                 else
                 {
@@ -572,11 +569,16 @@ public class Boombox : CustomItem
         }
     }
 
-    private void ActivateEasterEgg()
+    private void ActivateEasterEgg(AudioClipPlayback playback)
     {
         if (EasterEggUsed)
         {
             Log.Debug($"Easter egg has already been used this round");
+            return;
+        }
+        if (playback is null || playback.ReadPosition > AudioClipPlayback.PacketSize)
+        {
+            Log.Debug($"Easter egg playback is missing or past start of clip");
             return;
         }
 
@@ -595,27 +597,6 @@ public class Boombox : CustomItem
             Log.Debug($"SHAKE");
             Warhead.Shake();
         });
-    }
-
-    // The boombox's radio settings need to be set to ensure it can't be used like a regular radio.
-    // But, when it transitions between item (in hand) and pickup (on the ground), the settings reset.
-    // So, this method should be called when the item transitions or when the radio is equipped.
-    private void SetBoomboxSettings(Radio radio = null, RadioPickup radioPickup = null)
-    {
-        if (radio is not null)
-        {
-            //Log.Debug($"** setting boombox settings on Radio: {radio.Serial}");
-            radio.SetRangeSettings(RadioRange.Short, boomboxSettings);
-            radio.SetRangeSettings(RadioRange.Medium, boomboxSettings);
-            radio.SetRangeSettings(RadioRange.Long, boomboxSettings);
-            radio.SetRangeSettings(RadioRange.Ultra, boomboxSettings);
-            radio.BatteryLevel = 100;
-        }
-        else if (radioPickup is not null)
-        {
-            //Log.Debug($"** setting boombox settings on RadioPickup: {radioPickup.Serial}");
-            radioPickup.BatteryLevel = 100;
-        }
     }
 
     private IEnumerator<float> LoopCoroutine()
