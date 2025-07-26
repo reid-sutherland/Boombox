@@ -25,59 +25,76 @@ public class HintManager
     public string ChangeSongHint { get; set; } = "{playlistname}: {songname}";
     [Description("Hint message when the ShuffleSong key is pressed. Use {playlistname} and {songname} for formatting.")]
     public string ShuffleSongHint { get; set; } = "Shuffled song to {songname}";
-    [Description("Hint message when the ToggleLoop key is pressed. Use {status} for formatting.")]
-    public string ToggleLoopHint { get; set; } = "Looping is now {status}";
+    [Description("Hint message when the SwitchLoop key is pressed. Use {loopmode} for formatting.")]
+    public string SwitchLoopHint { get; set; } = "Switched loop mode to {loopmode}";
 
-    public bool TryShowPickedUpHint(Player player)
+    public bool TryShowPickedUpHint(Player player = null)
     {
-        if (ShowHints && (!string.IsNullOrEmpty(BoomboxName) || !string.IsNullOrEmpty(BoomboxDescription)))
+        if (player is not null)
         {
-            player.ShowHint(string.Format(CustomItems.Instance.Config.PickedUpHint.Content, BoomboxName, BoomboxDescription, CustomItems.Instance.Config.PickedUpHint.Duration));
-            return true;
+            if (ShowHints && (!string.IsNullOrEmpty(BoomboxName) || !string.IsNullOrEmpty(BoomboxDescription)))
+            {
+                player.ShowHint(string.Format(CustomItems.Instance.Config.PickedUpHint.Content, BoomboxName, BoomboxDescription, CustomItems.Instance.Config.PickedUpHint.Duration));
+                return true;
+            }
         }
         return false;
     }
 
-    public bool TryShowSelectedHint(Player player)
+    public bool TryShowSelectedHint(Player player = null)
     {
-        if (ShowHints && (!string.IsNullOrEmpty(BoomboxName) || !string.IsNullOrEmpty(BoomboxDescription)))
+        if (player is not null)
         {
-            player.ShowHint(string.Format(CustomItems.Instance.Config.SelectedHint.Content, BoomboxName, BoomboxDescription), (int)CustomItems.Instance.Config.SelectedHint.Duration);
-            return true;
+            if (ShowHints && (!string.IsNullOrEmpty(BoomboxName) || !string.IsNullOrEmpty(BoomboxDescription)))
+            {
+                player.ShowHint(string.Format(CustomItems.Instance.Config.SelectedHint.Content, BoomboxName, BoomboxDescription), (int)CustomItems.Instance.Config.SelectedHint.Duration);
+                return true;
+            }
         }
         return false;
     }
 
-    public void ShowChangePlaylist(Player player, Playlist playlist)
+    public void ShowChangePlaylist(Playlist playlist, Player player = null)
     {
-        if (ShowHints && !string.IsNullOrEmpty(ChangePlaylistHint))
+        if (player is not null)
         {
-            player.ShowHint(FormatHint(ChangePlaylistHint, playlist), HintDuration);
+            if (ShowHints && !string.IsNullOrEmpty(ChangePlaylistHint))
+            {
+                player.ShowHint(FormatHint(ChangePlaylistHint, playlist), HintDuration);
+            }
         }
     }
 
-    public void ShowChangeSong(Player player, Playlist playlist)
+    public void ShowChangeSong(Playlist playlist, Player player = null)
     {
-        if (ShowHints && !string.IsNullOrEmpty(ChangeSongHint))
+        if (player is not null)
         {
-            player.ShowHint(FormatHint(ChangeSongHint, playlist), HintDuration);
+            if (ShowHints && !string.IsNullOrEmpty(ChangeSongHint))
+            {
+                player.ShowHint(FormatHint(ChangeSongHint, playlist), HintDuration);
+            }
         }
     }
 
-    public void ShowShuffleSong(Player player, Playlist playlist)
+    public void ShowShuffleSong(Playlist playlist, Player player = null)
     {
-        if (ShowHints && !string.IsNullOrEmpty(ShuffleSongHint))
+        if (player is not null)
         {
-            player.ShowHint(FormatHint(ShuffleSongHint, playlist), HintDuration);
+            if (ShowHints && !string.IsNullOrEmpty(ShuffleSongHint))
+            {
+                player.ShowHint(FormatHint(ShuffleSongHint, playlist), HintDuration);
+            }
         }
     }
 
-    public void ShowToggleLoop(Player player, bool isLooping)
+    public void ShowSwitchLoop(LoopMode loopMode, Player player = null)
     {
-        if (ShowHints && !string.IsNullOrEmpty(ToggleLoopHint))
+        if (player is not null)
         {
-            string status = isLooping ? "enabled" : "disabled";
-            player.ShowHint(ToggleLoopHint.Replace("{status}", status));
+            if (ShowHints && !string.IsNullOrEmpty(SwitchLoopHint))
+            {
+                player.ShowHint(SwitchLoopHint.Replace("{loopmode}", loopMode.ToString()));
+            }
         }
     }
 

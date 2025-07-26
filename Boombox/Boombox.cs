@@ -353,11 +353,10 @@ public class Boombox : CustomItem
             var currentPlayback = GetPlayback(ev.Radio.Serial);
             if (currentPlayback is null)
             {
-                ChangeSong(ev.Player, ev.Radio.Serial, ev.Radio.Range, QueueType.Current);
+                ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player);
             }
             else if (ev.NewState)
             {
-                // TODO: not a big deal but un-pausing doesn't show anything - calling ChangeSongHint here may show the wrong info if current playback is from shuffle
                 currentPlayback.IsPaused = false;
             }
             else
@@ -382,9 +381,9 @@ public class Boombox : CustomItem
         {
             Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range]}");
 
-            // don't show conflicting hints if the playlist is empty or when changing song here
-            ChangeSong(ev.Player, ev.Radio.Serial, ev.NewValue, QueueType.Current, showHint: false);     // disable change-song hint so it doesn't conflict with the change-playlist hint above
-            HintManager.ShowChangePlaylist(ev.Player, Playlists[ev.NewValue]);
+            // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
+            ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
+            HintManager.ShowChangePlaylist(Playlists[ev.NewValue], ev.Player);
         }
     }
 
@@ -403,27 +402,31 @@ public class Boombox : CustomItem
 
         if (boombox.IsEnabled)
         {
-            Log.Debug($"Player '{player.Nickname}' pressed the {Config.ServerSettings.GetKeyType(settingId)} key ({settingId}) while holding {Identifier(boombox.Serial)}");
+            if (Config.KeybindDebug)
+            {
+                Log.Debug($"Player '{player.Nickname}' pressed the {Config.ServerSettings.GetKeyType(settingId)} key (id={settingId}) while holding {Identifier(boombox.Serial)}");
+            }
+
             if (settingId == Config.ServerSettings.ChangeSongKeybindId)
             {
-                ChangeSong(player, boombox.Serial, boombox.Range, QueueType.Next);
+                ChangeSong(boombox.Serial, QueueType.Next, player);
             }
             else if (settingId == Config.ServerSettings.ShuffleSongKeybindId)
             {
-                ShuffleSong(player, boombox.Serial, boombox.Range);
+                ShuffleSong(boombox.Serial, player);
             }
-            else if (settingId == Config.ServerSettings.LoopSongKeybindId)
+            else if (settingId == Config.ServerSettings.SwitchLoopKeybindId)
             {
-                LoopSong(player, boombox.Serial);
+                SwitchLoopMode(boombox.Serial, player);
             }
         }
-        else
+        else if (Config.KeybindDebug)
         {
             Log.Debug($"Player '{player.Nickname}' can't interact: {Identifier(boombox.Serial)} is off");
         }
     }
 
-    public void ChangeSong(Player player, ushort itemSerial, RadioRange range, QueueType queueType, bool showHint = true)
+    public void ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)
     {
         Playlist playlist = Playlists[range];
         if (playlist.Length == 0)
@@ -445,11 +448,14 @@ public class Boombox : CustomItem
             default:
                 break;
         }
-        PlaySong(Playlists[range].CurrentSong, itemSerial, player, showHint);
-        HintManager.ShowChangeSong(player, Playlists[range]);
+        PlaySong(itemSerial, Playlists[range].CurrentSong, player);
+        if (showHint)
+        {
+            HintManager.ShowChangeSong(Playlists[range], player);
+        }
     }
 
-    public void ShuffleSong(Player player, ushort itemSerial, RadioRange oldRange)
+    public void ShuffleSong(ushort itemSerial, Player player = null)
     {
         if (AllSongs.Count == 0)
         {
@@ -476,11 +482,12 @@ public class Boombox : CustomItem
         //    }
         //}
 
-        PlaySong(Playlists[newRange].CurrentSong, itemSerial, player);
-        HintManager.ShowShuffleSong(player, Playlists[newRange]);
+        Playlists[newRange].SongIndex = newIndex;
+        PlaySong(itemSerial, Playlists[newRange].CurrentSong, player);
+        HintManager.ShowShuffleSong(Playlists[newRange], player);
     }
 
-    public void LoopSong(Player player, ushort itemSerial)
+    public void SwitchLoopMode(ushort itemSerial, Player player = null)
     {
         // TODO: Add looping entire playlist
         var currentPlayback = GetPlayback(itemSerial);
@@ -490,10 +497,10 @@ public class Boombox : CustomItem
             return;
         }
         currentPlayback.Loop = !currentPlayback.Loop;
-        HintManager.ShowToggleLoop(player, currentPlayback.Loop);
+        HintManager.ShowSwitchLoop(newLoopMode, player);
     }
 
-    private void PlaySong(string song, ushort itemSerial, Player player = null, bool shuffle = false, bool showHint = true, bool addAll = false)
+    private void PlaySong(ushort itemSerial, string song, Player player = null)
     {
         var audioPlayer = GetAudioPlayer(itemSerial);
         if (audioPlayer is null)

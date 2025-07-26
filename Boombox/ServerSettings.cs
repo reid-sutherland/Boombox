@@ -9,18 +9,17 @@ namespace Boombox;
 
 public class ServerSettings
 {
+    private List<int> KeybindSettingIds { get; set; } = new();
+
     [YamlIgnore]
     public HeaderSetting BoomboxHeader { get; private set; } = new HeaderSetting("Boombox");
 
     [YamlIgnore]
     public KeybindSetting ChangeSongKeybind { get; private set; }
-
     [YamlIgnore]
     public KeybindSetting ShuffleSongKeybind { get; private set; }
     [YamlIgnore]
-    public KeybindSetting LoopSongKeybind { get; private set; }
-
-    private List<int> KeybindSettingIds { get; set; } = new();
+    public KeybindSetting SwitchLoopKeybind { get; private set; }
 
     [Description("Modify ServerSpecificSettings properties for the ChangeSong keybind here.")]
     public int ChangeSongKeybindId { get; set; } = 80081;
@@ -31,10 +30,10 @@ public class ServerSettings
     public int ShuffleSongKeybindId { get; set; } = 80082;
     public string ShuffleSongKeybindLabel { get; set; } = $"Shuffle Song - {KeyCode.G}";
     public string ShuffleSongKeybindHintDescription { get; set; } = "";
-    [Description("Modify ServerSpecificSettings properties for the LoopSong keybind here.")]
-    public int LoopSongKeybindId { get; set; } = 80083;
-    public string LoopSongKeybindLabel { get; set; } = $"Loop Song - {KeyCode.L}";
-    public string LoopSongKeybindHintDescription { get; set; } = "";
+    [Description("Modify ServerSpecificSettings properties for the SwitchLoop keybind here.")]
+    public int SwitchLoopKeybindId { get; set; } = 80083;
+    public string SwitchLoopKeybindLabel { get; set; } = $"Switch Loop Mode - {KeyCode.L}";
+    public string SwitchLoopKeybindHintDescription { get; set; } = "";
 
     //public static bool ShouldShowX(Player player) => !(player.SessionVariables.TryGetValue("X", out var value) && value is bool enabled && !enabled);
 
@@ -58,13 +57,13 @@ public class ServerSettings
             hintDescription: ShuffleSongKeybindHintDescription,
             header: BoomboxHeader
         );
-        LoopSongKeybind = new(
-            id: LoopSongKeybindId,
-            label: LoopSongKeybindLabel,
+        SwitchLoopKeybind = new(
+            id: SwitchLoopKeybindId,
+            label: SwitchLoopKeybindLabel,
             suggested: KeyCode.L,
             preventInteractionOnGUI: true,
             allowSpectatorTrigger: false,
-            hintDescription: LoopSongKeybindHintDescription,
+            hintDescription: SwitchLoopKeybindHintDescription,
             header: BoomboxHeader
         );
 
@@ -72,14 +71,14 @@ public class ServerSettings
         {
             ChangeSongKeybind.Base.SettingId,
             ShuffleSongKeybind.Base.SettingId,
-            LoopSongKeybind.Base.SettingId,
+            SwitchLoopKeybind.Base.SettingId,
         };
 
         SettingBase.Register(settings: new[]
         {
             ChangeSongKeybind,
             ShuffleSongKeybind,
-            LoopSongKeybind,
+            SwitchLoopKeybind,
         });
     }
 
@@ -89,7 +88,7 @@ public class ServerSettings
         {
             ChangeSongKeybind,
             ShuffleSongKeybind,
-            LoopSongKeybind,
+            SwitchLoopKeybind,
         });
     }
 
@@ -112,9 +111,9 @@ public class ServerSettings
         {
             return "ShuffleSong";
         }
-        else if (settingId == LoopSongKeybindId)
+        else if (settingId == SwitchLoopKeybindId)
         {
-            return "LoopSong";
+            return "SwitchLoop";
         }
         return "Unknown";
     }
