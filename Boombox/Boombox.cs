@@ -50,15 +50,30 @@ public class Boombox : CustomItem
 
     private HintManager HintManager => MainPlugin.Configs.HintManager;
 
-    private bool EasterEggUsed { get; set; } = false;
-
-    private CoroutineHandle EasterEggHandle { get; set; } = new();
+    /// Notes about Radio items:
+    /// - Getting/setting a RadioPickup seems to mostly work fine, e.g. InitializeBoombox().
+    /// - However, getting/setting a Radio item held by a player does not seem to work.
+    /// - Gets always return the same incorrect data, and sets do not seem to stick.
+    /// Notes about additional tracker dictionaries:
+    /// - The Radio item issues above make it difficult to get an equipped Radio's range correctly.
+    /// - Adding a Range tracker was the best way that I could find to make the Loop coroutine work effectively.
+    /// TODO: Now I need a better way to maintain per-Boombox state...
 
     private static HashSet<ushort> Serials { get; set; } = new();
+
+    private static Dictionary<ushort, RadioRange> RadioRanges { get; set; } = new();
+
+    private static Dictionary<ushort, LoopMode> LoopModes { get; set; } = new();
 
     private static Dictionary<ushort, AudioPlayer> AudioPlayers { get; set; } = new();
 
     private static Dictionary<ushort, AudioClipPlayback> Playbacks { get; set; } = new();
+
+    private bool EasterEggUsed { get; set; } = false;
+
+    private CoroutineHandle EasterEggHandle { get; set; } = new();
+
+    private CoroutineHandle LoopHandle { get; set; } = new();
 
     // This is used to ensure the boombox can never be used like a regular radio
     private readonly Exiled.API.Structs.RadioRangeSettings boomboxSettings = new()
@@ -71,6 +86,10 @@ public class Boombox : CustomItem
     public static bool IsBoombox(ushort serial) => Serials.Contains(serial);
 
     public static string Identifier(ushort serial) => $"{nameof(Boombox)}({serial})";
+
+    private RadioRange GetRange(ushort serial) => RadioRanges.TryGetValue(serial, out var range) ? range : RadioRange.Short;
+
+    private LoopMode GetLoopMode(ushort serial) => LoopModes.TryGetValue(serial, out var loopMode) ? loopMode : LoopMode.None;
 
     private string GetAudioPlayerName(ushort serial) => $"{Identifier(serial)}-AP";
 
@@ -180,6 +199,8 @@ public class Boombox : CustomItem
 
         // Initialize tracker objects
         Serials.Add(serial);
+        RadioRanges[serial] = RadioRange.Short;
+        LoopModes[serial] = LoopMode.None;
         AudioPlayers[serial] = null;
         Playbacks[serial] = null;
 
@@ -252,6 +273,11 @@ public class Boombox : CustomItem
         }
 
         Log.Info($"Round started: spawned {Serials.Count} Boombox(es)");
+        if (Serials.Count > 0)
+        {
+            Log.Debug($"Starting LoopCoroutine");
+            LoopHandle = Timing.RunCoroutine(LoopCoroutine());
+        }
 
         if (Config.EasterEggEnabled)
         {
@@ -262,8 +288,12 @@ public class Boombox : CustomItem
     protected void OnRoundEnded(RoundEndedEventArgs ev)
     {
         Serials.Clear();
+        RadioRanges.Clear();
+        LoopModes.Clear();
         AudioPlayers.Clear();
         Playbacks.Clear();
+
+        Timing.KillCoroutines(LoopHandle);
     }
 
     // Initializes newly spawned pickups, and/or attaches the audio player to the pickup for dropped/died events
@@ -346,6 +376,7 @@ public class Boombox : CustomItem
             return;
         }
         Log.Debug($"{ev.Player.Nickname} switched their {Identifier(ev.Radio.Serial)}: {(ev.NewState ? "ON" : "OFF")}");
+        RadioRanges[ev.Radio.Serial] = ev.Radio.Range;
 
         var audioPlayer = GetAudioPlayer(ev.Radio.Serial);
         if (audioPlayer is not null)
@@ -379,7 +410,8 @@ public class Boombox : CustomItem
         }
         if (ev.Radio.IsEnabled)
         {
-            Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range]}");
+            RadioRanges[ev.Radio.Serial] = ev.NewValue;
+            Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range].Name}");
 
             // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
             ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
@@ -428,6 +460,7 @@ public class Boombox : CustomItem
 
     public void ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)
     {
+        RadioRange range = GetRange(itemSerial);
         Playlist playlist = Playlists[range];
         if (playlist.Length == 0)
         {
@@ -470,7 +503,6 @@ public class Boombox : CustomItem
         Log.Debug($"Shuffled song to '{newSong}' (range={newRange} index={newIndex})");
 
         // Set the radio and song index to the new range and playlist position
-        Playlists[newRange].SongIndex = newIndex;
         // TODO: Change radio preset to the new range
         //if (newRange != oldRange)
         //{
@@ -489,14 +521,16 @@ public class Boombox : CustomItem
 
     public void SwitchLoopMode(ushort itemSerial, Player player = null)
     {
-        // TODO: Add looping entire playlist
-        var currentPlayback = GetPlayback(itemSerial);
-        if (currentPlayback is null)
+        LoopMode oldLoopMode = GetLoopMode(itemSerial);
+        LoopMode newLoopMode = NextLoopMode(oldLoopMode);
+        Log.Debug($"Player '{player.Nickname}' switched {Identifier(itemSerial)} loop mode from {oldLoopMode} to {newLoopMode}");
+
+        var playback = GetPlayback(itemSerial);
+        if (playback is not null)
         {
-            Log.Debug($"Can't loop: No playback for {Identifier(itemSerial)}");
-            return;
+            playback.Loop = newLoopMode == LoopMode.RepeatSong;
         }
-        currentPlayback.Loop = !currentPlayback.Loop;
+        LoopModes[itemSerial] = newLoopMode;
         HintManager.ShowSwitchLoop(newLoopMode, player);
     }
 
@@ -516,7 +550,7 @@ public class Boombox : CustomItem
             audioPlayer.RemoveClipByName(playback.Clip);
         }
 
-        playback = audioPlayer.AddClip(song);
+        playback = audioPlayer.AddClip(song, loop: GetLoopMode(itemSerial) == LoopMode.RepeatSong);
         Playbacks[itemSerial] = playback;
         Log.Debug($"Added clip '{playback.Clip}' to {Identifier(itemSerial)} audio player");
 
@@ -563,21 +597,6 @@ public class Boombox : CustomItem
         });
     }
 
-    private void AddAllSongs(int startIndex)
-    {
-        // TODO: This should be a coroutine that plays the next song after the playback time has elapsed
-        // But it also needs to check for pause / song change events
-
-        //Log.Debug($"Adding all songs from start index: {startIndex}");
-        //for (int i = 0; i < songList.Count; i++)
-        //{
-        //    string clip = songList[(i + startIndex) % songList.Count];
-        //    AudioPlayer.AddClip(clip);
-        //    AudioPlayer.
-        //    Log.Debug($"-- {i}: {clip}");
-        //}
-    }
-
     // The boombox's radio settings need to be set to ensure it can't be used like a regular radio.
     // But, when it transitions between item (in hand) and pickup (on the ground), the settings reset.
     // So, this method should be called when the item transitions or when the radio is equipped.
@@ -597,6 +616,64 @@ public class Boombox : CustomItem
             //Log.Debug($"** setting boombox settings on RadioPickup: {radioPickup.Serial}");
             radioPickup.BatteryLevel = 100;
         }
+    }
+
+    private IEnumerator<float> LoopCoroutine()
+    {
+        for (; ; )
+        {
+            foreach (var serial in Serials)
+            {
+                var loopMode = GetLoopMode(serial);
+                if (loopMode == LoopMode.None || loopMode == LoopMode.RepeatSong) // RepeatSong is handled by playback.Loop
+                {
+                    continue;
+                }
+
+                // Invoke the proper loop action when an active clip playback ends
+                var playback = GetPlayback(serial);
+                if (playback is not null && !playback.IsPaused && playback.ReadPosition >= playback.Samples.Length)
+                {
+                    Log.Debug($"LoopCoroutine: {Identifier(serial)} clip ended: {playback.Clip} - loop mode: {loopMode}");
+
+                    // TODO: With the tracked Ranges approach, the only thing we're missing here is the item owner...
+                    //       but that's only needed for the hint so maybe it's better that way
+
+                    RadioRange range = GetRange(serial);
+                    Playlist playlist = Playlists[range];
+                    Player player = null;
+                    if (playlist is not null)
+                    {
+                        switch (loopMode)
+                        {
+                            case LoopMode.CyclePlaylist:
+                                playlist.NextSong();
+                                PlaySong(serial, playlist.CurrentSong, player);
+                                break;
+                            case LoopMode.ShuffleAll:
+                                ShuffleSong(serial, player);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+            // Don't need to clog up CPU with constant checking so once a second should be fast enough
+            yield return Timing.WaitForSeconds(1.0f);
+        }
+    }
+
+    private LoopMode NextLoopMode(LoopMode loopMode)
+    {
+        return loopMode switch
+        {
+            LoopMode.None => LoopMode.RepeatSong,
+            LoopMode.RepeatSong => LoopMode.CyclePlaylist,
+            LoopMode.CyclePlaylist => LoopMode.ShuffleAll,
+            LoopMode.ShuffleAll => LoopMode.None,
+            _ => LoopMode.None,
+        };
     }
 
     // Override CustomItem hints with hints values from config

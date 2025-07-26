@@ -5,13 +5,6 @@ using YamlDotNet.Serialization;
 
 namespace Boombox;
 
-public enum QueueType
-{
-    Current = 0,
-    Next,
-    Last,
-}
-
 public class Playlists : Dictionary<RadioRange, Playlist>
 {
     // Default constructor so a generated config will have all keys with empty playlists
