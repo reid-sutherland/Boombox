@@ -60,6 +60,8 @@ public class Boombox : CustomItem
     /// - However, this could cause bugs in the future so need to find a better system or revert.
     /// TODO: Now I need a better way to maintain per-Boombox state...
 
+    // These dictionaries are the stateful trackers for each individual Boombox
+
     private static HashSet<ushort> Serials { get; set; } = new();
 
     private static Dictionary<ushort, RadioRange> RadioRanges { get; set; } = new();
@@ -69,6 +71,8 @@ public class Boombox : CustomItem
     private static Dictionary<ushort, AudioPlayer> AudioPlayers { get; set; } = new();
 
     private static Dictionary<ushort, AudioClipPlayback> Playbacks { get; set; } = new();
+
+    private static Dictionary<ushort, Playlists> TrackedPlaylists { get; set; } = new();
 
     private bool EasterEggUsed { get; set; } = false;
 
@@ -89,6 +93,8 @@ public class Boombox : CustomItem
     private AudioPlayer GetAudioPlayer(ushort serial) => AudioPlayers.TryGetValue(serial, out var audioPlayer) ? audioPlayer : null;
 
     private AudioClipPlayback GetPlayback(ushort serial) => Playbacks.TryGetValue(serial, out var playback) ? playback : null;
+
+    private Playlists GetPlaylists(ushort serial) => TrackedPlaylists.TryGetValue(serial, out var playlists) ? playlists : Playlists;
 
     [Description("Where the boombox can spawn. Currently a limit of 1 is required.")]
     public override SpawnProperties SpawnProperties { get; set; } = new()
@@ -196,6 +202,7 @@ public class Boombox : CustomItem
         LoopModes[serial] = LoopMode.None;
         AudioPlayers[serial] = null;
         Playbacks[serial] = null;
+        TrackedPlaylists[serial] = Playlists;
 
         // Create the audio player
         try
@@ -282,6 +289,7 @@ public class Boombox : CustomItem
         LoopModes.Clear();
         AudioPlayers.Clear();
         Playbacks.Clear();
+        TrackedPlaylists.Clear();
 
         Timing.KillCoroutines(LoopHandle);
     }
@@ -405,11 +413,12 @@ public class Boombox : CustomItem
 
         // TODO: Replace this logic with a ChangePlaylist method so ChangeSong is separate
         RadioRanges[ev.Radio.Serial] = ev.NewValue;
-        Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {Playlists[ev.Radio.Range].Name}");
+        Playlists playlists = GetPlaylists(ev.Radio.Serial);
+        Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {playlists[ev.Radio.Range].Name}");
 
         // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
         ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
-        HintManager.ShowChangePlaylist(Playlists[ev.NewValue], ev.Player);
+        HintManager.ShowChangePlaylist(playlists[ev.NewValue], ev.Player);
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
@@ -454,7 +463,7 @@ public class Boombox : CustomItem
     public void ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)
     {
         RadioRange range = GetRange(itemSerial);
-        Playlist playlist = Playlists[range];
+        Playlist playlist = GetPlaylists(itemSerial)[range];
         if (playlist.Length == 0)
         {
             Log.Debug($"No songs in the playlist for range: {range}");
@@ -465,19 +474,19 @@ public class Boombox : CustomItem
         switch (queueType)
         {
             case QueueType.Next:
-                Playlists[range].NextSong();
+                playlist.NextSong();
                 break;
             case QueueType.Last:
-                Playlists[range].PreviousSong();
+                playlist.PreviousSong();
                 break;
             case QueueType.Current:
             default:
                 break;
         }
-        PlaySong(itemSerial, Playlists[range].CurrentSong, player);
+        PlaySong(itemSerial, playlist.CurrentSong, player);
         if (showHint)
         {
-            HintManager.ShowChangeSong(Playlists[range], player);
+            HintManager.ShowChangeSong(playlist, player);
         }
     }
 
@@ -495,6 +504,11 @@ public class Boombox : CustomItem
         string newSong = randomSong.Item3;
         Log.Debug($"Shuffled song to '{newSong}' (range={newRange} index={newIndex})");
 
+        Playlist playlist = GetPlaylists(itemSerial)[newRange];
+        playlist.SongIndex = newIndex;
+        PlaySong(itemSerial, playlist.CurrentSong, player);
+        HintManager.ShowShuffleSong(playlist, player);
+
         // TODO: This method needs some adjustments or at least refinement:
         //  - currently, Shuffle does not affect the current radio range, playlist, song, etc.
         //  - it literally just sets the active playback to a random song
@@ -511,9 +525,6 @@ public class Boombox : CustomItem
         //        Log.Debug($"-- changing radio range to {newRange}");
         //    }
         //}
-        Playlists[newRange].SongIndex = newIndex;
-        PlaySong(itemSerial, Playlists[newRange].CurrentSong, player);
-        HintManager.ShowShuffleSong(Playlists[newRange], player);
     }
 
     public void SwitchLoopMode(ushort itemSerial, Player player = null)
@@ -621,7 +632,7 @@ public class Boombox : CustomItem
                     //       but that's only needed for the hint so maybe it's better that way
 
                     RadioRange range = GetRange(serial);
-                    Playlist playlist = Playlists[range];
+                    Playlist playlist = GetPlaylists(serial)[range];
                     Player player = null;
                     if (playlist is not null)
                     {
