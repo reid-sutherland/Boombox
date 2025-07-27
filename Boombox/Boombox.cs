@@ -567,14 +567,12 @@ public class Boombox : CustomItem
             // Easter egg
             if (Config.EasterEggEnabled)
             {
+                // Always kill coroutine first so the timing isn't messed up
+                Timing.KillCoroutines(EasterEggHandle);
+
                 if (song == Config.EasterEggSong && player.UserId == Config.EasterEggPlayerId)
                 {
-                    // TODO: PlaySong cancels on song change but need to cancel (or delay) coroutine on playback paused
                     ActivateEasterEgg(playback);
-                }
-                else
-                {
-                    Timing.KillCoroutines(EasterEggHandle);
                 }
             }
         }
