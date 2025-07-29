@@ -42,7 +42,7 @@ public class Playlist
     public int Length => Songs.Count;
 
     [YamlIgnore]
-    public string CurrentSong => (Length > 0 ? Songs[SongIndex] : "(no songs)").Replace(".ogg", "");
+    public string CurrentSong => Length > 0 ? Songs[SongIndex] : "(no songs)";
 
     public Playlist()
     {

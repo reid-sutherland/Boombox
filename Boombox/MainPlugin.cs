@@ -6,6 +6,7 @@ using Exiled.API.Features;
 using Exiled.CustomItems.API.Features;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UserSettings.ServerSpecific;
 using Random = System.Random;
 
@@ -66,6 +67,13 @@ public class MainPlugin : Plugin<Config>
             Log.Warn($"Removed all clips that failed to load from playlists");
         }
         Log.Info($"Finished loading audio clips");
+
+        // At this point we don't need the filepaths, so change all file names to clip names i.e. 'boombox.ogg' -> 'boombox'
+        foreach (Playlist playlist in Boombox.Playlists.Values)
+        {
+            playlist.Songs = playlist.Songs.Select(song => song.Replace(".ogg", "")).ToList();
+        }
+        Config.EasterEggSong = Config.EasterEggSong.Replace(".ogg", "");
 
         // Register custom items here
         Log.Debug("Registering custom items...");

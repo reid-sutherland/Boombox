@@ -108,13 +108,12 @@ public sealed class Config : IConfig
         // Check easter egg
         if (EasterEggEnabled)
         {
-            EasterEggSong = EasterEggSong.Replace(".ogg", "");
             if (string.IsNullOrEmpty(EasterEggSong))
             {
                 EasterEggEnabled = false;
-                Log.Warn($"Config had EasterEggEnabled but EasterEggSong is invalid: {EasterEggSong}");
+                Log.Warn($"Config had EasterEggEnabled but EasterEggSong is null/empty");
             }
-            else if (!File.Exists(Path.Combine(AudioPath, EasterEggSong + ".ogg")))
+            else if (!File.Exists(Path.Combine(AudioPath, EasterEggSong)))
             {
                 EasterEggEnabled = false;
                 Log.Warn($"Config had EasterEggEnabled but EasterEggSong does not exist: {EasterEggSong}");

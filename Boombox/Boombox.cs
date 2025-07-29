@@ -44,7 +44,7 @@ public class Boombox : CustomItem
 
     // Internal master playlist for playlist-independent shuffling - contains each song's original playlist range and index
     [YamlIgnore]
-    public List<Tuple<RadioRange, int, string>> AllSongs { get; set; } = new();
+    public List<Tuple<Playlist, string>> AllSongs { get; set; } = new();
 
     private Config Config => MainPlugin.Configs;
 
@@ -231,12 +231,11 @@ public class Boombox : CustomItem
 
         // Populate a list of all songs for shuffling
         AllSongs = new();
-        foreach (var item in Playlists)
+        foreach (var playlist in Playlists.Values)
         {
-            Playlist playlist = item.Value;
-            for (int index = 0; index < playlist.Length; index++)
+            foreach (var song in playlist.Songs)
             {
-                AllSongs.Add(new(item.Key, index, playlist.Songs[index]));
+                AllSongs.Add(new(playlist, song));
             }
         }
 
@@ -478,39 +477,18 @@ public class Boombox : CustomItem
             return;
         }
 
-        Tuple<RadioRange, int, string> randomSongTuple = AllSongs.GetRandomValue();
-        RadioRange randomRange = randomSongTuple.Item1;
-        int randomIndex = randomSongTuple.Item2;
-        string randomSong = randomSongTuple.Item3;
-        Log.Debug($"Shuffled song to '{randomSong}' (range={randomRange} index={randomIndex})");
+        Tuple<Playlist, string> randomSongTuple = AllSongs.GetRandomValue();
+        Playlist randomPlaylist = randomSongTuple.Item1;
+        string randomSong = randomSongTuple.Item2;
+        Log.Debug($"Shuffled song to '{randomSong}' from playlist: {randomPlaylist.Name}");
 
-        Playlist playlistForRange = state.Playlists[randomRange];
-        string songForPlaylist = playlistForRange.Songs[randomIndex];
-
-        // TODO: REMOVE - STILL NEED TO TEST THIS AGAIN
-        Log.Debug($"-- playlist at random range: {playlistForRange.Name} - full: {state.Playlists[randomRange].Name}");
-        Log.Debug($"-- song at random index: {songForPlaylist} - full: {state.Playlists[randomRange].Songs[randomIndex]}");
-
-        PlaySong(itemSerial, songForPlaylist, player);
-        HintManager.ShowShuffleSong(playlistForRange, player);
+        PlaySong(itemSerial, randomSong, player);
+        HintManager.ShowShuffleSong(randomPlaylist, randomSong, player);
 
         // TODO: This method needs some adjustments or at least refinement:
         //  - currently, Shuffle does not affect the current radio range, playlist, song, etc.
         //  - it literally just sets the active playback to a random song
         //  - not sure how to correctly do this yet but maybe it's better that it doesn't change the non-shuffle position?
-
-        // Set the radio and song index to the new range and playlist position
-        //RadioRange oldRange = GetRange(itemSerial);
-        //if (newRange != oldRange)
-        //{
-        //    Radio radio = (Radio)Item.Get(itemSerial);
-        //    if (radio is not null)
-        //    {
-        //        // TODO: setting the radio to the new range does not work
-        //        radio.Range = newRange;
-        //        Log.Debug($"-- changing radio range to {newRange}");
-        //    }
-        //}
     }
 
     public void SwitchLoopMode(ushort itemSerial, Player player = null)
