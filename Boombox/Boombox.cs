@@ -470,7 +470,6 @@ public class Boombox : CustomItem
             return;
         }
 
-        // TODO: Try replacing these with circular buffers
         switch (queueType)
         {
             case QueueType.Next:
