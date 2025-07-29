@@ -378,19 +378,7 @@ public class Boombox : CustomItem
             ev.IsAllowed = false;
             return;
         }
-        if (!BoomboxStates.TryGetValue(ev.Radio.Serial, out var state) || state is null)
-        {
-            Log.Error($"OnChangingRadioPreset: state object not found for {Identifier(ev.Radio.Serial)}");
-            return;
-        }
-
-        // TODO: Replace this logic with a ChangePlaylist method so ChangeSong is separate
-        state.Range = ev.NewValue;
-        Log.Debug($"{ev.Player.Nickname} changed the {state.Identifier} playlist to {ev.NewValue}: {state.CurrentPlaylist.Name}");
-
-        // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
-        ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
-        HintManager.ShowChangePlaylist(state.CurrentPlaylist, ev.Player);
+        ChangePlaylist(ev.Radio.Serial, ev.NewValue, ev.Player);
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
@@ -430,6 +418,20 @@ public class Boombox : CustomItem
         {
             Log.Debug($"Player '{player.Nickname}' can't interact: {Identifier(boombox.Serial)} is off");
         }
+    }
+
+    public void ChangePlaylist(ushort itemSerial, RadioRange newRange, Player player)
+    {
+        if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
+        {
+            Log.Error($"ChangePlaylist: state object not found for {Identifier(itemSerial)}");
+            return;
+        }
+        state.Range = newRange;
+        Player holder = player ?? Server.Host;
+        Log.Debug($"{holder.Nickname} changed the {state.Identifier} playlist to {state.Range}: {state.CurrentPlaylist.Name}");
+        ChangeSong(itemSerial, QueueType.Current, player, showHint: false); // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
+        HintManager.ShowChangePlaylist(state.CurrentPlaylist, player);
     }
 
     public void ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)

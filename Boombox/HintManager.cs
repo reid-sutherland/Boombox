@@ -76,13 +76,14 @@ public class HintManager
         }
     }
 
-    public void ShowShuffleSong(Playlist playlist, Player player = null)
+    // This uses a song argument because the playlist index is not actually changed for shuffle
+    public void ShowShuffleSong(Playlist playlist, string song, Player player = null)
     {
         if (player is not null)
         {
             if (ShowHints && !string.IsNullOrEmpty(ShuffleSongHint))
             {
-                player.ShowHint(FormatHint(ShuffleSongHint, playlist), HintDuration);
+                player.ShowHint(FormatHint(ShuffleSongHint, playlist).Replace(playlist.CurrentSong, song), HintDuration);
             }
         }
     }
