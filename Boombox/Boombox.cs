@@ -163,7 +163,13 @@ public class Boombox : CustomItem
         base.UnsubscribeEvents();
     }
 
-    protected void InitializeBoombox(ushort serial)
+    /// <summary>
+    /// Initializes all of the tracked states and properties for an individual Boombox object (Radio or RadioPickup),
+    /// then creates an AudioPlayer and attaches it to the GameObject of the identified object.
+    /// This should be called any time a new Boombox object appears without an AudioPlayer.
+    /// </summary>
+    /// <returns>True if the tracked states, specifically the AudioPlayer, were successfully created.</returns>
+    protected bool InitializeBoombox(ushort serial)
     {
         // First look for a pickup or an item with matching serial to initialize
         GameObject audioAttacher = null;
@@ -190,11 +196,6 @@ public class Boombox : CustomItem
                 audioAttacher = item.Owner.GameObject;
             }
         }
-        if (audioAttacher is null)
-        {
-            Log.Error($"Initialize: No pickup or item with matching serial was found for {Identifier(serial)}");
-            return;
-        }
 
         // Initialize tracker objects
         Serials.Add(serial);
@@ -204,12 +205,12 @@ public class Boombox : CustomItem
         Playbacks[serial] = null;
         TrackedPlaylists[serial] = Playlists;
 
-        // Create the audio player
+        // Create the audio player and attach speakers
         try
         {
             var audioPlayer = AudioHelper.GetAudioPlayer(
                 GetAudioPlayerName(serial),
-                parent: audioAttacher,
+                parent: null, // attach the speaker separately for logging
                 speakerVolume: SpeakerVolume,
                 speakerCount: SpeakerCount,
                 minDistance: MinDistance,
@@ -220,6 +221,17 @@ public class Boombox : CustomItem
             {
                 AudioPlayers[serial] = audioPlayer;
                 Log.Info($"Initialize: Created audio player for spawned {Identifier(serial)} with name: {audioPlayer.Name}");
+
+                // Now attach speakers to the object
+                if (audioAttacher is not null)
+                {
+                    AudioHelper.AttachAudioPlayer(audioPlayer, audioAttacher, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
+                }
+                else
+                {
+                    Log.Error($"Initialize: Speaker was not attached: No pickup or item found with matching serial: {serial}");
+                }
+                return true;
             }
             else
             {
@@ -230,6 +242,7 @@ public class Boombox : CustomItem
         {
             Log.Error($"Initialize: Tried to create audio player for spawned {Identifier(serial)}. Exception: {ex.Message}");
         }
+        return false;
     }
 
     protected void OnRoundStarted()
@@ -268,7 +281,10 @@ public class Boombox : CustomItem
             if (!Serials.Contains(serial) || GetAudioPlayer(serial) == null)
             {
                 Log.Debug($"OnRoundStart: No AudioPlayer for {Identifier(serial)}, initializing");
-                InitializeBoombox(serial);
+                if (!InitializeBoombox(serial))
+                {
+                    Log.Error($"OnRoundStart: Failed to initialize AudioPlayer for {Identifier(serial)}");
+                }
             }
         }
         Log.Info($"Round started: spawned {Serials.Count} Boombox(es)");
@@ -312,12 +328,10 @@ public class Boombox : CustomItem
         else
         {
             Log.Debug($"OnPickupSpawned: No AudioPlayer, initializing");
-            InitializeBoombox(ev.Pickup.Serial);
-        }
-
-        if (GetAudioPlayer(ev.Pickup.Serial) is null)
-        {
-            Log.Error($"OnPickupSpawned: AudioPlayer is still null for {Identifier(ev.Pickup.Serial)}");
+            if (!InitializeBoombox(ev.Pickup.Serial))
+            {
+                Log.Error($"OnPickupSpawned: AudioPlayer is still null for {Identifier(ev.Pickup.Serial)}");
+            }
         }
     }
 
@@ -330,21 +344,15 @@ public class Boombox : CustomItem
         var audioPlayer = GetAudioPlayer(item.Serial);
         if (audioPlayer is not null)
         {
-            var speaker = AudioHelper.AttachAudioPlayer(audioPlayer, player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
-            if (speaker is null)
-            {
-                Log.Error($"OnAcquired: Speaker is null");
-            }
+            AudioHelper.AttachAudioPlayer(audioPlayer, player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
         }
         else
         {
             Log.Debug($"OnAcquired: No AudioPlayer, initializing");
-            InitializeBoombox(item.Serial);
-        }
-
-        if (GetAudioPlayer(item.Serial) is null)
-        {
-            Log.Error($"OnAcquired: AudioPlayer is still null for {Identifier(item.Serial)}");
+            if (!InitializeBoombox(item.Serial))
+            {
+                Log.Error($"OnAcquired: AudioPlayer is still null for {Identifier(item.Serial)}");
+            }
         }
     }
 
