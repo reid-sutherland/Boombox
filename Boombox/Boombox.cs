@@ -50,29 +50,7 @@ public class Boombox : CustomItem
 
     private HintManager HintManager => MainPlugin.Configs.HintManager;
 
-    /// Notes about Radio items:
-    /// - If the item was initially spawned as a pickup, then Item.Get(serial) seems to not work.
-    /// - Getters always return the same data from initialized, and Setters do not seem to stick.
-    /// - However if the item was spawned as an item (e.g. customitems.give) then the serial approach works for pickups/items.
-    /// Notes about additional tracker dictionaries:
-    /// - The Radio item issues above make it difficult to get an equipped Radio's range correctly.
-    /// - Adding a Range tracker was the best way that I could find to make the Loop coroutine work effectively.
-    /// - However, this could cause bugs in the future so need to find a better system or revert.
-    /// TODO: Now I need a better way to maintain per-Boombox state...
-
-    // These dictionaries are the stateful trackers for each individual Boombox
-
-    private static HashSet<ushort> Serials { get; set; } = new();
-
-    private static Dictionary<ushort, RadioRange> RadioRanges { get; set; } = new();
-
-    private static Dictionary<ushort, LoopMode> LoopModes { get; set; } = new();
-
-    private static Dictionary<ushort, AudioPlayer> AudioPlayers { get; set; } = new();
-
-    private static Dictionary<ushort, AudioClipPlayback> Playbacks { get; set; } = new();
-
-    private static Dictionary<ushort, Playlists> TrackedPlaylists { get; set; } = new();
+    private BoomboxStates BoomboxStates { get; set; } = new();
 
     private bool EasterEggUsed { get; set; } = false;
 
@@ -80,21 +58,7 @@ public class Boombox : CustomItem
 
     private CoroutineHandle LoopHandle { get; set; } = new();
 
-    public static bool IsBoombox(ushort serial) => Serials.Contains(serial);
-
-    public static string Identifier(ushort serial) => $"{nameof(Boombox)}({serial})";
-
-    private RadioRange GetRange(ushort serial) => RadioRanges.TryGetValue(serial, out var range) ? range : RadioRange.Short;
-
-    private LoopMode GetLoopMode(ushort serial) => LoopModes.TryGetValue(serial, out var loopMode) ? loopMode : LoopMode.None;
-
-    private string GetAudioPlayerName(ushort serial) => $"{Identifier(serial)}-AP";
-
-    private AudioPlayer GetAudioPlayer(ushort serial) => AudioPlayers.TryGetValue(serial, out var audioPlayer) ? audioPlayer : null;
-
-    private AudioClipPlayback GetPlayback(ushort serial) => Playbacks.TryGetValue(serial, out var playback) ? playback : null;
-
-    private Playlists GetPlaylists(ushort serial) => TrackedPlaylists.TryGetValue(serial, out var playlists) ? playlists : Playlists;
+    private string Identifier(ushort serial) => BoomboxStates.Identifier(serial);
 
     [Description("Where the boombox can spawn. Currently a limit of 1 is required.")]
     public override SpawnProperties SpawnProperties { get; set; } = new()
@@ -197,19 +161,21 @@ public class Boombox : CustomItem
             }
         }
 
-        // Initialize tracker objects
-        Serials.Add(serial);
-        RadioRanges[serial] = RadioRange.Short;
-        LoopModes[serial] = LoopMode.None;
-        AudioPlayers[serial] = null;
-        Playbacks[serial] = null;
-        TrackedPlaylists[serial] = Playlists;
+        // Create the state object for the boombox and add it to the tracker
+        BoomboxState newState = new(serial, Playlists)
+        {
+            Range = RadioRange.Short,
+            LoopMode = LoopMode.None,
+            AudioPlayer = null,
+            CurrentPlayback = null,
+        };
+        BoomboxStates[serial] = newState;
 
         // Create the audio player and attach speakers
         try
         {
             var audioPlayer = AudioHelper.GetAudioPlayer(
-                GetAudioPlayerName(serial),
+                audioPlayerName: newState.AudioPlayerName,
                 parent: null, // attach the speaker separately for logging
                 speakerVolume: SpeakerVolume,
                 speakerCount: SpeakerCount,
@@ -219,8 +185,8 @@ public class Boombox : CustomItem
             );
             if (audioPlayer is not null)
             {
-                AudioPlayers[serial] = audioPlayer;
-                Log.Info($"Initialize: Created audio player for spawned {Identifier(serial)} with name: {audioPlayer.Name}");
+                Log.Info($"Initialize: Created audio player for spawned {newState.Identifier} with name: {audioPlayer.Name}");
+                newState.AudioPlayer = audioPlayer;
 
                 // Now attach speakers to the object
                 if (audioAttacher is not null)
@@ -235,12 +201,12 @@ public class Boombox : CustomItem
             }
             else
             {
-                Log.Error($"Initialize: Failed to create audio player for spawned {Identifier(serial)}");
+                Log.Error($"Initialize: Failed to create audio player for spawned {newState.Identifier}");
             }
         }
         catch (Exception ex)
         {
-            Log.Error($"Initialize: Tried to create audio player for spawned {Identifier(serial)}. Exception: {ex.Message}");
+            Log.Error($"Initialize: Tried to create audio player for spawned {newState.Identifier}. Exception: {ex.Message}");
         }
         return false;
     }
@@ -278,7 +244,7 @@ public class Boombox : CustomItem
         foreach (int ser in TrackedSerials)
         {
             ushort serial = (ushort)ser;
-            if (!Serials.Contains(serial) || GetAudioPlayer(serial) == null)
+            if (BoomboxStates.GetAudioPlayer(serial) is null)
             {
                 Log.Debug($"OnRoundStart: No AudioPlayer for {Identifier(serial)}, initializing");
                 if (!InitializeBoombox(serial))
@@ -287,7 +253,7 @@ public class Boombox : CustomItem
                 }
             }
         }
-        Log.Info($"Round started: spawned {Serials.Count} Boombox(es)");
+        Log.Info($"Round started: tracking {BoomboxStates.Count} spawned Boombox(es)");
 
         LoopHandle = Timing.RunCoroutine(LoopCoroutine());
         Log.Debug($"Starting LoopCoroutine");
@@ -300,12 +266,7 @@ public class Boombox : CustomItem
 
     protected void OnRoundEnded(RoundEndedEventArgs ev)
     {
-        Serials.Clear();
-        RadioRanges.Clear();
-        LoopModes.Clear();
-        AudioPlayers.Clear();
-        Playbacks.Clear();
-        TrackedPlaylists.Clear();
+        BoomboxStates.Clear();
 
         Timing.KillCoroutines(LoopHandle);
     }
@@ -320,7 +281,7 @@ public class Boombox : CustomItem
         Log.Debug($"Pickup spawned for {Identifier(ev.Pickup.Serial)}");
         ev.Pickup.Scale = Scale;    // scale likes to reset itself so re-apply
 
-        var audioPlayer = GetAudioPlayer(ev.Pickup.Serial);
+        var audioPlayer = BoomboxStates.GetAudioPlayer(ev.Pickup.Serial);
         if (audioPlayer is not null)
         {
             AudioHelper.AttachAudioPlayer(audioPlayer, ev.Pickup.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
@@ -341,7 +302,7 @@ public class Boombox : CustomItem
         base.OnAcquired(player, item, displayMessage);
         Log.Debug($"{player.Nickname} acquired {Identifier(item.Serial)}");
 
-        var audioPlayer = GetAudioPlayer(item.Serial);
+        var audioPlayer = BoomboxStates.GetAudioPlayer(item.Serial);
         if (audioPlayer is not null)
         {
             AudioHelper.AttachAudioPlayer(audioPlayer, player.GameObject, SpeakerVolume, SpeakerCount, MinDistance, MaxDistance, log: Config.AudioDebug);
@@ -378,31 +339,31 @@ public class Boombox : CustomItem
         {
             return;
         }
-        Log.Debug($"{ev.Player.Nickname} switched their {Identifier(ev.Radio.Serial)}: {(ev.NewState ? "ON" : "OFF")}");
-        RadioRanges[ev.Radio.Serial] = ev.Radio.Range;
-
-        var audioPlayer = GetAudioPlayer(ev.Radio.Serial);
-        if (audioPlayer is not null)
+        if (!BoomboxStates.TryGetValue(ev.Radio.Serial, out var state) || state is null)
         {
-            var currentPlayback = GetPlayback(ev.Radio.Serial);
-            if (currentPlayback is null)
-            {
-                ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player);
-                currentPlayback = GetPlayback(ev.Radio.Serial);
-            }
+            Log.Error($"OnTogglingRadio: state object not found for {Identifier(ev.Radio.Serial)}");
+            return;
+        }
 
-            if (ev.NewState)
-            {
-                currentPlayback.IsPaused = false;
-            }
-            else
-            {
-                currentPlayback.IsPaused = true;
-            }
+        Log.Debug($"{ev.Player.Nickname} switched their {state.Identifier}: {(ev.NewState ? "ON" : "OFF")}");
+        state.Range = ev.Radio.Range;   // this shouldn't be necessary but feels safer
+        if (state.AudioPlayer is null)
+        {
+            Log.Error($"OnTogglingRadio: no AudioPlayer for toggled {state.Identifier}");
+            return;
+        }
+
+        if (state.CurrentPlayback is null)
+        {
+            ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player);
+        }
+        if (ev.NewState)
+        {
+            state.CurrentPlayback.IsPaused = false;
         }
         else
         {
-            Log.Error($"-- audio player was null for toggled radio");
+            state.CurrentPlayback.IsPaused = true;
         }
     }
 
@@ -418,15 +379,19 @@ public class Boombox : CustomItem
             ev.IsAllowed = false;
             return;
         }
+        if (!BoomboxStates.TryGetValue(ev.Radio.Serial, out var state) || state is null)
+        {
+            Log.Error($"OnChangingRadioPreset: state object not found for {Identifier(ev.Radio.Serial)}");
+            return;
+        }
 
         // TODO: Replace this logic with a ChangePlaylist method so ChangeSong is separate
-        RadioRanges[ev.Radio.Serial] = ev.NewValue;
-        Playlists playlists = GetPlaylists(ev.Radio.Serial);
-        Log.Debug($"{ev.Player.Nickname} changed the {Identifier(ev.Radio.Serial)} playlist to {ev.NewValue}: {playlists[ev.Radio.Range].Name}");
+        state.Range = ev.NewValue;
+        Log.Debug($"{ev.Player.Nickname} changed the {state.Identifier} playlist to {ev.NewValue}: {state.CurrentPlaylist.Name}");
 
         // disable ChangeSong hint to avoid conflict with ChangePlaylist hint
         ChangeSong(ev.Radio.Serial, QueueType.Current, ev.Player, showHint: false);
-        HintManager.ShowChangePlaylist(playlists[ev.NewValue], ev.Player);
+        HintManager.ShowChangePlaylist(state.CurrentPlaylist, ev.Player);
     }
 
     // Not an EXILED handler, called directly when a player holding the boombox presses the SS key
@@ -470,55 +435,69 @@ public class Boombox : CustomItem
 
     public void ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)
     {
-        RadioRange range = GetRange(itemSerial);
-        Playlist playlist = GetPlaylists(itemSerial)[range];
-        if (playlist.Length == 0)
+        if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
         {
-            Log.Debug($"No songs in the playlist for range: {range}");
+            Log.Error($"ChangeSong: state object not found for {Identifier(itemSerial)}");
+            return;
+        }
+        if (state.CurrentPlaylist.Length == 0)
+        {
+            Log.Debug($"No songs in the playlist for range: {state.Range}");
             return;
         }
 
         switch (queueType)
         {
             case QueueType.Next:
-                playlist.NextSong();
+                state.CurrentPlaylist.NextSong();
                 break;
             case QueueType.Last:
-                playlist.PreviousSong();
+                state.CurrentPlaylist.PreviousSong();
                 break;
             case QueueType.Current:
             default:
                 break;
         }
-        PlaySong(itemSerial, playlist.CurrentSong, player);
+        PlaySong(itemSerial, state.CurrentPlaylist.CurrentSong, player);
         if (showHint)
         {
-            HintManager.ShowChangeSong(playlist, player);
+            HintManager.ShowChangeSong(state.CurrentPlaylist, player);
         }
     }
 
     public void ShuffleSong(ushort itemSerial, Player player = null)
     {
+        if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
+        {
+            Log.Error($"ShuffleSong: state object not found for {Identifier(itemSerial)}");
+            return;
+        }
         if (AllSongs.Count == 0)
         {
             Log.Debug($"Can't shuffle: No songs in any playlists");
             return;
         }
 
-        Tuple<RadioRange, int, string> randomSong = AllSongs.GetRandomValue();
-        RadioRange newRange = randomSong.Item1;
-        int newIndex = randomSong.Item2;
-        string newSong = randomSong.Item3;
-        Log.Debug($"Shuffled song to '{newSong}' (range={newRange} index={newIndex})");
+        Tuple<RadioRange, int, string> randomSongTuple = AllSongs.GetRandomValue();
+        RadioRange randomRange = randomSongTuple.Item1;
+        int randomIndex = randomSongTuple.Item2;
+        string randomSong = randomSongTuple.Item3;
+        Log.Debug($"Shuffled song to '{randomSong}' (range={randomRange} index={randomIndex})");
 
-        Playlist playlist = GetPlaylists(itemSerial)[newRange];
-        playlist.SongIndex = newIndex;
-        PlaySong(itemSerial, playlist.CurrentSong, player);
-        HintManager.ShowShuffleSong(playlist, player);
+        Playlist playlistForRange = state.Playlists[randomRange];
+        string songForPlaylist = playlistForRange.Songs[randomIndex];
+
+        // TODO: REMOVE - STILL NEED TO TEST THIS AGAIN
+        Log.Debug($"-- playlist at random range: {playlistForRange.Name} - full: {state.Playlists[randomRange].Name}");
+        Log.Debug($"-- song at random index: {songForPlaylist} - full: {state.Playlists[randomRange].Songs[randomIndex]}");
+
+        PlaySong(itemSerial, songForPlaylist, player);
+        HintManager.ShowShuffleSong(playlistForRange, player);
 
         // TODO: This method needs some adjustments or at least refinement:
         //  - currently, Shuffle does not affect the current radio range, playlist, song, etc.
         //  - it literally just sets the active playback to a random song
+        //  - not sure how to correctly do this yet but maybe it's better that it doesn't change the non-shuffle position?
 
         // Set the radio and song index to the new range and playlist position
         //RadioRange oldRange = GetRange(itemSerial);
@@ -536,56 +515,55 @@ public class Boombox : CustomItem
 
     public void SwitchLoopMode(ushort itemSerial, Player player = null)
     {
-        LoopMode oldLoopMode = GetLoopMode(itemSerial);
-        LoopMode newLoopMode = NextLoopMode(oldLoopMode);
-        Log.Debug($"Player '{player.Nickname}' switched {Identifier(itemSerial)} loop mode from {oldLoopMode} to {newLoopMode}");
-
-        var playback = GetPlayback(itemSerial);
-        if (playback is not null)
+        if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
         {
-            playback.Loop = newLoopMode == LoopMode.RepeatSong;
+            Log.Error($"SwitchLoopMode: state object not found for {Identifier(itemSerial)}");
+            return;
         }
-        LoopModes[itemSerial] = newLoopMode;
-        HintManager.ShowSwitchLoop(newLoopMode, player);
+
+        state.LoopMode = state.LoopMode.Next();
+        Log.Debug($"Player '{player.Nickname}' switched {state.Identifier} loop mode to {state.LoopMode}");
+
+        // AudioPlayerApi takes care of repeating current song via Loop flag
+        state.CurrentPlayback.Loop = state.LoopMode == LoopMode.RepeatSong;
+        HintManager.ShowSwitchLoop(state.LoopMode, player);
     }
 
     private void PlaySong(ushort itemSerial, string song, Player player = null)
     {
-        var audioPlayer = GetAudioPlayer(itemSerial);
-        if (audioPlayer is null)
+        if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
         {
-            Log.Error($"Can't play song '{song}': {Identifier(itemSerial)} has a null audio player");
+            Log.Error($"PlaySong: state object not found for {Identifier(itemSerial)}");
+            return;
+        }
+        if (state.AudioPlayer is null)
+        {
+            Log.Error($"PlaySong: can't play '{song}': no AudioPlayer for {state.Identifier}");
             return;
         }
 
-        // Stop current song
-        var playback = GetPlayback(itemSerial);
-        if (playback is not null)
+        state.StopCurrentPlayback();
+        if (!state.StartNewPlayback(song))
         {
-            audioPlayer.RemoveClipByName(playback.Clip);
+            return;
         }
+        Log.Debug($"Added clip '{state.CurrentPlayback.Clip}' to AudioPlayer for {state.Identifier}");
 
-        playback = audioPlayer.AddClip(song, loop: GetLoopMode(itemSerial) == LoopMode.RepeatSong);
-        Playbacks[itemSerial] = playback;
-        Log.Debug($"Added clip '{playback.Clip}' to {Identifier(itemSerial)} audio player");
-
-        if (player is not null)
+        // Easter egg
+        if (Config.EasterEggEnabled && player is not null)
         {
-            // Easter egg
-            if (Config.EasterEggEnabled)
-            {
-                // Always kill coroutine first so the timing isn't messed up
-                Timing.KillCoroutines(EasterEggHandle);
+            // Always kill coroutine first so the timing isn't messed up
+            Timing.KillCoroutines(EasterEggHandle);
 
-                if (song == Config.EasterEggSong && player.UserId == Config.EasterEggPlayerId)
-                {
-                    ActivateEasterEgg(playback);
-                }
+            if (song == Config.EasterEggSong && player.UserId == Config.EasterEggPlayerId)
+            {
+                // If the song is not paused/changed, then easter egg will trigger after the configured delay time
+                StartEasterEggTimer(state.CurrentPlayback);
             }
         }
     }
 
-    private void ActivateEasterEgg(AudioClipPlayback playback)
+    private void StartEasterEggTimer(AudioClipPlayback playback)
     {
         if (EasterEggUsed)
         {
@@ -594,24 +572,22 @@ public class Boombox : CustomItem
         }
         if (playback is null || playback.ReadPosition > AudioClipPlayback.PacketSize)
         {
-            Log.Debug($"Easter egg playback is missing or past start of clip");
+            Log.Debug($"Easter egg playback is null or past start of clip");
             return;
         }
 
         // TODO: It seems that either 14.1 or LabAPI 1.1 broke the global speaker, needs a fix
-        Log.Debug($"EasterEggSong '{Config.EasterEggSong}' played - queuing shake");
+        Log.Debug($"EasterEgg clip '{Config.EasterEggSong}' played: queuing shake");
         AudioPlayer audioPlayer = AudioPlayer.CreateOrGet($"GLOBAL", onIntialCreation: (p) =>
         {
-            // sad volume :( multi-speaker hack seems to bug out in global
             Speaker speaker = p.AddSpeaker($"Global", isSpatial: false, maxDistance: 5000f);
         });
 
-        // shake the world
         EasterEggHandle = Timing.CallDelayed(Config.EasterEggDelay, () =>
         {
             EasterEggUsed = true;
             Log.Debug($"SHAKE");
-            Warhead.Shake();
+            Warhead.Shake();    // shake the facility when the beat drops
         });
     }
 
@@ -619,36 +595,29 @@ public class Boombox : CustomItem
     {
         for (; ; )
         {
-            foreach (var serial in Serials)
+            foreach (var state in BoomboxStates.Values)
             {
-                var loopMode = GetLoopMode(serial);
-                if (loopMode == LoopMode.None || loopMode == LoopMode.RepeatSong) // RepeatSong is handled by playback.Loop
+                if (state.LoopMode == LoopMode.None || state.LoopMode == LoopMode.RepeatSong) // RepeatSong is handled by playback.Loop
                 {
                     continue;
                 }
 
                 // Invoke the proper loop action when an active clip playback ends
-                var playback = GetPlayback(serial);
+                var playback = state.CurrentPlayback;
                 if (playback is not null && !playback.IsPaused && playback.ReadPosition >= playback.Samples.Length)
                 {
-                    Log.Debug($"LoopCoroutine: {Identifier(serial)} clip ended: {playback.Clip} - loop mode: {loopMode}");
+                    Log.Debug($"LoopCoroutine: {state.Identifier} clip ended: {playback.Clip} - loop mode: {state.LoopMode}");
 
-                    // TODO: With the tracked Ranges approach, the only thing we're missing here is the item owner...
-                    //       but that's only needed for the hint so maybe it's better that way
-
-                    RadioRange range = GetRange(serial);
-                    Playlist playlist = GetPlaylists(serial)[range];
-                    Player player = null;
-                    if (playlist is not null)
+                    // Since I don't have a reliable way of getting item's owner from the state, hints will not be shown here
+                    if (state.CurrentPlaylist is not null)
                     {
-                        switch (loopMode)
+                        switch (state.LoopMode)
                         {
                             case LoopMode.CyclePlaylist:
-                                playlist.NextSong();
-                                PlaySong(serial, playlist.CurrentSong, player);
+                                ChangeSong(state.Serial, QueueType.Next);
                                 break;
                             case LoopMode.ShuffleAll:
-                                ShuffleSong(serial, player);
+                                ShuffleSong(state.Serial);
                                 break;
                             default:
                                 break;
@@ -656,21 +625,9 @@ public class Boombox : CustomItem
                     }
                 }
             }
-            // Don't need to clog up CPU with constant checking so once a second should be fast enough
+            // Don't need to clog up game thread(?) with constant checking so once a second should be fast enough
             yield return Timing.WaitForSeconds(1.0f);
         }
-    }
-
-    private LoopMode NextLoopMode(LoopMode loopMode)
-    {
-        return loopMode switch
-        {
-            LoopMode.None => LoopMode.RepeatSong,
-            LoopMode.RepeatSong => LoopMode.CyclePlaylist,
-            LoopMode.CyclePlaylist => LoopMode.ShuffleAll,
-            LoopMode.ShuffleAll => LoopMode.None,
-            _ => LoopMode.None,
-        };
     }
 
     // Override CustomItem hints with hints values from config
@@ -722,7 +679,7 @@ public class Boombox : CustomItem
             return;
         }
 
-        if (IsBoombox(radioItem.Serial))
+        if (BoomboxStates.IsBoombox(radioItem.Serial))
         {
             //Log.Debug($"{ev.Player.Nickname} trying to send with a boombox: denied");
             ev.IsAllowed = false;
@@ -741,7 +698,7 @@ public class Boombox : CustomItem
             return;
         }
 
-        if (IsBoombox(radioItem.Serial))
+        if (BoomboxStates.IsBoombox(radioItem.Serial))
         {
             //Log.Debug($"{ev.Player.Nickname} trying to receive with a boombox: denied");
             ev.IsAllowed = false;

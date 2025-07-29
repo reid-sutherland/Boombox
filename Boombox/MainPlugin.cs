@@ -139,19 +139,3 @@ public class MainPlugin : Plugin<Config>
         Log.Debug(message, print: Configs.KeybindDebug);
     }
 }
-
-// These are here because there's already too much in Boombox.cs
-public enum QueueType
-{
-    Current = 0,
-    Next,
-    Last,
-}
-
-public enum LoopMode
-{
-    None = 0,
-    RepeatSong,
-    CyclePlaylist,
-    ShuffleAll,
-}
