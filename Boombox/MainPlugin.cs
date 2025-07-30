@@ -20,7 +20,7 @@ public class MainPlugin : Plugin<Config>
 
     public override string Prefix { get; } = "Boombox";
 
-    public override Version Version { get; } = new(1, 2, 2);
+    public override Version Version { get; } = new(1, 3, 0);
 
     public override Version RequiredExiledVersion { get; } = new(9, 6, 1);
 
