@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
 		<AssemblyName>Boombox</AssemblyName>
-		<Version>1.2.2</Version>
+		<Version>1.3.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Configurations>Debug;Release</Configurations>
 		<Platforms>AnyCPU</Platforms>
@@ -27,7 +27,7 @@
 	<Import Project="../Plugin.props" />
 
 	<ItemGroup>
-		<PackageReference Include="ExMod.Exiled" Version="9.6.1" />
+		<PackageReference Include="ExMod.Exiled" Version="9.6.3" />
 		<PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
 		<PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopVersion)" IncludeAssets="All" PrivateAssets="All" />
 		<PackageReference Include="ILMerge" Version="3.0.40" />
