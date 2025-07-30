@@ -22,10 +22,10 @@ Uses:
 - Press the Change Song key to cycle to the next song in the current playlist. 
 - Press the Shuffle Song key to switch to a random song in the entire set of playlists/songs.
 - Press the Loop Song key to toggle what happens when a song ends. This is similar to apps like Spotify and has the following modes:
-  - `None`: the playback stops when the song ends.
-  - `RepeatSong`: the playback repeats the current song indefinitely.
-  - `CyclePlaylist`: the playback will cycle through the songs in the current playlist indefinitely.
-  - `ShuffleAll`: the playback will shuffle to a new random song indefinitely.
+  1. `None`: the playback stops when the song ends.
+  1. `RepeatSong`: the playback repeats the current song indefinitely.
+  1. `CyclePlaylist`: the playback will cycle through the songs in the current playlist indefinitely.
+  1. `ShuffleAll`: the playback will shuffle to a new random song indefinitely.
 
 ## Installation / Depedencies
 
@@ -35,11 +35,11 @@ Main dependencies:
 
 This plugin uses Exiled so .dlls must be installed in the normal locations. 
 1. Unless your server uses non-standard paths, `%EXILED%` => normal Exiled locations:
-  - Windows: `C:\Users\%UserName%\AppData\Roaming\EXILED`
-  - Linux: `~/.config/EXILED`
-1. Download the files from the latest release
-1. Place `Boombox.dll` in `%EXILED%\Plugins\`
-1. Unzip `dependencies.zip` and place all .dlls in `%EXILED%\Plugins\dependencies`
+    1. Windows: `C:\Users\%UserName%\AppData\Roaming\EXILED`
+    2. Linux: `~/.config/EXILED`
+2. Download the files from the latest release
+3. Place `Boombox.dll` in `%EXILED%\Plugins\`
+4. Unzip `dependencies.zip` and place all .dlls in `%EXILED%\Plugins\dependencies`
 
 ## Configuration
 
