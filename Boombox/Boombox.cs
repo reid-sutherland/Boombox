@@ -50,15 +50,16 @@ public class Boombox : CustomItem
 
     private HintManager HintManager => MainPlugin.Configs.HintManager;
 
-    private BoomboxStates BoomboxStates { get; set; } = new();
-
     private bool EasterEggUsed { get; set; } = false;
 
     private CoroutineHandle EasterEggHandle { get; set; } = new();
 
     private CoroutineHandle LoopHandle { get; set; } = new();
 
-    private string Identifier(ushort serial) => BoomboxStates.Identifier(serial);
+    [YamlIgnore]
+    public BoomboxStates BoomboxStates { get; set; } = new();
+
+    public string Identifier(ushort serial) => BoomboxStates.Identifier(serial);
 
     [Description("Where the boombox can spawn. Currently a limit of 1 is required.")]
     public override SpawnProperties SpawnProperties { get; set; } = new()
@@ -434,17 +435,17 @@ public class Boombox : CustomItem
         HintManager.ShowChangePlaylist(state.CurrentPlaylist, player);
     }
 
-    public void ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)
+    public string ChangeSong(ushort itemSerial, QueueType queueType, Player player = null, bool showHint = true)
     {
         if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
         {
             Log.Error($"ChangeSong: state object not found for {Identifier(itemSerial)}");
-            return;
+            return "";
         }
         if (state.CurrentPlaylist.Length == 0)
         {
             Log.Debug($"No songs in the playlist for range: {state.Range}");
-            return;
+            return "";
         }
 
         switch (queueType)
@@ -464,28 +465,31 @@ public class Boombox : CustomItem
         {
             HintManager.ShowChangeSong(state.CurrentPlaylist, player);
         }
+        return state.CurrentPlaylist.CurrentSong;
     }
 
-    public void ShuffleSong(ushort itemSerial, Player player = null)
+    public Tuple<Playlist, string> ShuffleSong(ushort itemSerial, Player player = null)
     {
+        Tuple<Playlist, string> randomSongTuple = new(new Playlist(), "");
         if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
         {
             Log.Error($"ShuffleSong: state object not found for {Identifier(itemSerial)}");
-            return;
+            return randomSongTuple;
         }
         if (AllSongs.Count == 0)
         {
             Log.Debug($"Can't shuffle: No songs in any playlists");
-            return;
+            return randomSongTuple;
         }
 
-        Tuple<Playlist, string> randomSongTuple = AllSongs.GetRandomValue();
+        randomSongTuple = AllSongs.GetRandomValue();
         Playlist randomPlaylist = randomSongTuple.Item1;
         string randomSong = randomSongTuple.Item2;
         Log.Debug($"Shuffled song to '{randomSong}' from playlist: {randomPlaylist.Name}");
 
         PlaySong(itemSerial, randomSong, player);
         HintManager.ShowShuffleSong(randomPlaylist, randomSong, player);
+        return randomSongTuple;
 
         // TODO: This method needs some adjustments or at least refinement:
         //  - currently, Shuffle does not affect the current radio range, playlist, song, etc.
@@ -493,12 +497,12 @@ public class Boombox : CustomItem
         //  - not sure how to correctly do this yet but maybe it's better that it doesn't change the non-shuffle position?
     }
 
-    public void SwitchLoopMode(ushort itemSerial, Player player = null)
+    public LoopMode SwitchLoopMode(ushort itemSerial, Player player = null)
     {
         if (!BoomboxStates.TryGetValue(itemSerial, out var state) || state is null)
         {
             Log.Error($"SwitchLoopMode: state object not found for {Identifier(itemSerial)}");
-            return;
+            return LoopMode.None;
         }
 
         state.LoopMode = state.LoopMode.Next();
@@ -507,6 +511,7 @@ public class Boombox : CustomItem
         // AudioPlayerApi takes care of repeating current song via Loop flag
         state.CurrentPlayback.Loop = state.LoopMode == LoopMode.RepeatSong;
         HintManager.ShowSwitchLoop(state.LoopMode, player);
+        return state.LoopMode;
     }
 
     private void PlaySong(ushort itemSerial, string song, Player player = null)

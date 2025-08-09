@@ -9,7 +9,7 @@ namespace Boombox;
 /// - However if the item was spawned as an item (e.g. customitems.give) then the serial approach works for pickups/items.
 
 // This tracks all of the BoomboxStates by item serial
-internal class BoomboxStates : Dictionary<ushort, BoomboxState>
+public class BoomboxStates : Dictionary<ushort, BoomboxState>
 {
     public bool IsBoombox(ushort serial) => ContainsKey(serial);
 
@@ -26,7 +26,7 @@ internal class BoomboxStates : Dictionary<ushort, BoomboxState>
 }
 
 // This represents all of the individual stateful properties of an individual Boombox
-internal class BoomboxState
+public class BoomboxState
 {
     public ushort Serial { get; set; }
     public Playlists Playlists { get; set; }

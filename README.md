@@ -4,7 +4,7 @@ This plugin offers a Radio-based CustomItem (The JBL Speaker a.k.a. "Boombox") t
 
 ## Important Notes
 
-Be sure to bind the server-specific Boombox keys to use it properly.
+Be sure to bind the server-specific Boombox keys to use it properly. Or, you can use console commands from the command system described in the next section.
 ![Server-specific settings](./keybind-settings.png)
 
 Audio files must be `.ogg` format, `48000 Hz` frequency, and `Mono` channels. Use [this free website](https://audio.online-convert.com/convert/mp3-to-ogg),
@@ -21,11 +21,22 @@ Uses:
 - Change the radio frequency/range to change playlists, the config has a different playlist option for each range. 
 - Press the Change Song key to cycle to the next song in the current playlist. 
 - Press the Shuffle Song key to switch to a random song in the entire set of playlists/songs.
-- Press the Loop Song key to toggle what happens when a song ends. This is similar to apps like Spotify and has the following modes:
+- Press the Toggle Loop key to toggle what happens when a song ends. This is similar to apps like Spotify and has the following modes:
   1. `None`: the playback stops when the song ends.
   1. `RepeatSong`: the playback repeats the current song indefinitely.
   1. `CyclePlaylist`: the playback will cycle through the songs in the current playlist indefinitely.
   1. `ShuffleAll`: the playback will shuffle to a new random song indefinitely.
+
+#### Console Commands
+
+As an alternative to Server-Specific Settings keybinds, you can use console commands from the client console (opened with ` button).
+
+While holding a Boombox that is On, you can use the following console commands:
+1. `.boombox change` => Change Song
+1. `.boombox shuffle` => Shuffle Song
+1. `.boombox loop` => Toggle Loop
+
+You can also use `.bb` instead as a shorthand. Please note that for some reason, the commands are not recognized unless they start with a `.` character.
 
 ## Installation / Depedencies
 
