@@ -18,7 +18,7 @@ public class MainPlugin : Plugin<Config>
 
     public override string Prefix { get; } = "Boombox";
 
-    public override Version Version { get; } = new(1, 3, 0);
+    public override Version Version { get; } = new(1, 3, 1);
 
     public override Version RequiredExiledVersion { get; } = new(9, 6, 1);
 
@@ -46,7 +46,9 @@ public class MainPlugin : Plugin<Config>
         bool allLoaded = true;
         foreach (Playlist playlist in Boombox.Playlists.Values)
         {
-            List<string> failedClips = AudioHelper.LoadAudioClips(Configs.AudioPath, playlist.Songs, log: Configs.AudioDebug);
+            // Skip loading any clip names that already exist in storage (or duplicates in the same list) to avoid duplicate errors
+            List<string> newSongs = playlist.Songs.Where(x => !AudioClipStorage.AudioClips.ContainsKey(x.Replace(".ogg", ""))).Distinct().ToList();
+            List<string> failedClips = AudioHelper.LoadAudioClips(Configs.AudioPath, newSongs, log: Configs.AudioDebug);
             if (failedClips.Count > 0)
             {
                 allLoaded = false;
