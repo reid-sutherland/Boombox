@@ -27,7 +27,7 @@
 	<Import Project="../Plugin.props" />
 
 	<ItemGroup>
-		<PackageReference Include="ExMod.Exiled" Version="9.6.3" />
+		<PackageReference Include="ExMod.Exiled" Version="9.10.1" />
 		<PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
 		<PackageReference Include="StyleCop.Analyzers" Version="$(StyleCopVersion)" IncludeAssets="All" PrivateAssets="All" />
 		<PackageReference Include="ILMerge" Version="3.0.40" />

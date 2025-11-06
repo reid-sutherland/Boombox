@@ -12,7 +12,7 @@ public class ServerSettings
     private List<int> KeybindSettingIds { get; set; } = new();
 
     [YamlIgnore]
-    public HeaderSetting BoomboxHeader { get; private set; } = new HeaderSetting("Boombox");
+    public HeaderSetting BoomboxHeader { get; private set; } = new HeaderSetting(80080, "Boombox");
 
     [YamlIgnore]
     public KeybindSetting ChangeSongKeybind { get; private set; }
